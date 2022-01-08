@@ -13,14 +13,14 @@ public extension String {
 	// Extensions to make it easier to work with C-style strings	
     subscript (n: Int) -> Character {
         get {
-            if let s = self.index(self.startIndex, offsetBy: n, limitedBy: self.endIndex) {
+            if !self.isEmpty, let s = self.index(startIndex, offsetBy: n, limitedBy: self.index(endIndex, offsetBy: -1)) {
                 return self[s]
             }
             return "\0"
         }
         set {
             // Strings are immutable so this gets messy and is probably not very efficient
-            if let s = self.index(self.startIndex, offsetBy: n, limitedBy: self.endIndex) {
+            if let s = self.index(startIndex, offsetBy: n, limitedBy: self.index(endIndex, offsetBy: -1)) {
                 self = self.replacingCharacters(in: s...s, with: String(newValue))
             }
         }

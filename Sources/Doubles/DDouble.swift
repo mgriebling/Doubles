@@ -23,7 +23,14 @@ public struct DDouble {
     public init(_ hi: Double, _ lo: Double) { x = SIMD2(hi, lo) }
     public init(_ s: SIMD2<Double>)         { x = s }
     
-    public init(_ s: String) { x = SIMD2.zero }  // TBD
+    public init (_ s: String) {
+        if let q : DDouble = Common.toFloat(s) {
+            x = q.x
+        } else {
+            Common.error("(Quad.init): STRING CONVERT ERROR.")
+            x = DDouble.nan.x
+        }
+    }
     
     /// Access functions
     var hi: Double { x.x }
@@ -100,7 +107,7 @@ public struct DDouble {
     static private var _3pi4 = DDouble(2.356194490192344837e+00, 9.1848509936051484375e-17);
     static private var _e = DDouble(2.718281828459045091e+00, 1.445646891729250158e-16);
     static private var _log2 = DDouble(6.931471805599452862e-01, 2.319046813846299558e-17);
-    static private var _log10 = DDouble(2.302585092994045901e+00, -2.170756223382249351e-16);
+    static public  var Log10 = DDouble(2.302585092994045901e+00, -2.170756223382249351e-16);
     static private var _nan = DDouble(Double.nan, Double.nan)
     static private var _snan = DDouble(Double.signalingNaN, Double.signalingNaN)
     static private var _inf = DDouble(Double.infinity, Double.infinity)
@@ -155,7 +162,7 @@ public struct DDouble {
 
     /* These are provided to give consistent
        interface for double with double-double and quad-double. */
-    static func sincosh(_ t:Double) -> (sinht: Double, cosht: Double) { (sinht: sinh(t), cosht: cosh(t)) }
+ //   static func sincosh(_ t:Double) -> (sinht: Double, cosht: Double) { (sinht: sinh(t), cosht: cosh(t)) }
 
     /*********** Squaring **********/
     public static func sqr(_ a:DDouble) -> DDouble {
@@ -260,6 +267,14 @@ public struct DDouble {
 
     /* double + double-double */
     public static func + (_ a:Double, _ b:DDouble) -> DDouble { b + a }
+    
+    /* double-double += double */
+    public static func += (_ x: inout DDouble, _ a:Double) {
+        var s2 = 0.0
+        let s1 = two_sum(x.x[0], a, &s2)
+        s2 += x.x[1]
+        x.x[0] = quick_two_sum(s1, s2, &x.x[1])
+    }
     
     /* double-double += double-double */
     public static func += (_ x: inout DDouble, _ a:DDouble) {
@@ -389,6 +404,8 @@ public struct DDouble {
         return r
     }
     
+    static public func inv(_ a:DDouble) -> DDouble { 1.0 / a }
+    
     static func sloppyDiv(_ a:DDouble, _ b:DDouble) -> DDouble {
         let q1 = a.x[0] / b.x[0];  /* approximate quotient */
         
@@ -430,38 +447,40 @@ public struct DDouble {
     /********** Exponentiation **********/
     /* Computes the n-th power of a double-double number.
        NOTE:  0^0 causes an error.                         */
-    static func npwr(_ a:DDouble, _ n:Int) -> DDouble {
-        if n == 0 {
-            if a.isZero {
-                print("(DDouble::npwr): Invalid argument.");
-                return DDouble._nan
-            }
-            return DDouble(1.0)
-        }
-        
-        var r = a
-        var s = DDouble(1.0)
-        var N = Foundation.abs(Int32(n))
-        
-        if N > 1 {
-            /* Use binary exponentiation */
-            while N > 0 {
-                if N % 2 == 1 {
-                    s *= r;
-                }
-                N /= 2;
-                if N > 0 { r = DDouble.sqr(r) }
-            }
-        } else {
-            s = r
-        }
-        
-        /* Compute the reciprocal if n is negative. */
-        return (n < 0) ? (1.0 / s) : s
-    }
+//    static func npwr(_ a:DDouble, _ n:Int) -> DDouble { Common.pow(a, n) }
+//        if n == 0 {
+//            if a.isZero {
+//                Common.error("(DDouble::npwr): Invalid argument.");
+//                return DDouble._nan
+//            }
+//            return DDouble(1.0)
+//        }
+//
+//        var r = a
+//        var s = DDouble(1.0)
+//        var N = Foundation.abs(Int32(n))
+//
+//        if N > 1 {
+//            /* Use binary exponentiation */
+//            while N > 0 {
+//                if N % 2 == 1 {
+//                    s *= r;
+//                }
+//                N /= 2;
+//                if N > 0 { r = DDouble.sqr(r) }
+//            }
+//        } else {
+//            s = r
+//        }
+//
+//        /* Compute the reciprocal if n is negative. */
+//        return (n < 0) ? (1.0 / s) : s
+//    }
 
+    static public func pow (_ a: DDouble, _ b: DDouble) -> DDouble { exp(b * log(a)) }
+    
     /// Power function a ** n
-    public static func ** (_ a:DDouble, _ n:Int) -> DDouble { npwr(a, n) }
+    public static func ** (a:DDouble, n:Int) -> DDouble { Common.pow(a, n) }
     
 }
 
@@ -494,311 +513,44 @@ extension DDouble : Comparable {
     public static func <= (_ a:DDouble,_ b:DDouble) -> Bool { a.x[0] < b.x[0] || (a.x[0] == b.x[0] && a.x[1] <= b.x[1]) }
 }
 
-public struct FmtFlags: OptionSet {
+public struct Format: OptionSet {
     public let rawValue: Int
     
     public init(rawValue: Int) { self.rawValue = rawValue }
 
-    static let dec = FmtFlags(rawValue: 1 << 0)
-    static let oct = FmtFlags(rawValue: 1 << 1)
-    static let hex = FmtFlags(rawValue: 1 << 2)
+    static let dec = Format(rawValue: 1 << 0)
+    static let oct = Format(rawValue: 1 << 1)
+    static let hex = Format(rawValue: 1 << 2)
     
-    static let left = FmtFlags(rawValue: 1 << 3)
-    static let right = FmtFlags(rawValue: 1 << 4)
-    static let intern = FmtFlags(rawValue: 1 << 5)
+    static let left = Format(rawValue: 1 << 3)
+    static let right = Format(rawValue: 1 << 4)
+    static let intern = Format(rawValue: 1 << 5)
     
-    static let scientific = FmtFlags(rawValue: 1 << 6)
-    static let fixed = FmtFlags(rawValue: 1 << 7)
+    static let scientific = Format(rawValue: 1 << 6)
+    static let fixed = Format(rawValue: 1 << 7)
     
-    static let baseField: FmtFlags = [.dec, .oct, .hex]
-    static let adjustField: FmtFlags = [.left, .right, .intern]
-    static let floatField: FmtFlags = [.scientific, .fixed]
+    static let baseField: Format = [.dec, .oct, .hex]
+    static let adjustField: Format = [.left, .right, .intern]
+    static let floatField: Format = [.scientific, .fixed]
 }
 
 extension DDouble : CustomStringConvertible {
-    
-    func to_digits(_ s: inout String, _ expn: inout Int, _ precision:Int) {
-        let D = precision + 1  /* number of digits to compute */
-        var r = self.abs
-        
-        if x[0] == 0.0 {
-            /* self == 0.0 */
-            expn = 0
-            s += "".padding(toLength: precision, withPad: "0", startingAt: 0)
-            return
-        }
-        
-        /* First determine the (approximate) exponent. */
-        var e = Int(Foundation.floor(Foundation.log10(Foundation.fabs(x[0]))))
-        if e < -300 {
-            r *= DDouble(10.0) ** 300
-            r /= DDouble(10.0) ** (e + 300)
-        } else if e > 300 {
-            r = DDouble.ldexp(r, -53)
-            r /= DDouble(10.0) ** e
-            r = DDouble.ldexp(r, 53)
-        } else {
-            r /= DDouble(10.0) ** e
-        }
-        
-        /* Fix exponent if we are off by one */
-        if (r >= 10.0) {
-            r /= 10.0;
-            e+=1
-        } else if (r < 1.0) {
-            r *= 10.0;
-            e-=1
-        }
-        
-        if (r >= 10.0 || r < 1.0) {
-            print("(DDouble.to_digits): can't compute exponent.")
-            return
-        }
-        
-        /* Extract the digits */
-        for _ in 0..<D {
-            let d = Int(r.x[0])
-            r -= DDouble(d)
-            r *= 10.0
-            s += String(d)
-        }
-        
-        /* Fix out of range digits. */
-        for i in stride(from: D-1, to: 0, by: -1) {
-            if s[i] < "0" {
-                s[i-1]-=1
-                s[i] += 10
-            } else if s[i] > "9" {
-                s[i-1]+=1
-                s[i] -= 10
-            }
-        }
-        
-        if s[0] <= "0" {
-            print("(DDouble.to_digits): non-positive leading digit.")
-            return
-        }
-        
-        /* Round, handle carry */
-        if s[D-1] >= "5" {
-            s[D-2]+=1
-            
-            var i = D-2
-            while i > 0 && s[i] > "9" {
-                s[i] -= 10
-                i -= 1
-                s[i] += 1
-            }
-        }
-        
-        /* If first digit is 10, shift everything. */
-        if s[0] > "9" {
-            e+=1
-            s = "10" + s
-        }
-        expn = e
+    public func string(_ precision: Int, width: Int=0, fmt:Format=[], showpos: Bool = false, uppercase: Bool = false, fill: String = " ") -> String {
+        Common.string(self, precision, width: width, fmt: fmt, showpos: showpos, uppercase: uppercase, fill: fill)
     }
-    
-    func roundString(_ s: inout String, _ precision: inout Int, offset: inout Int) {
-        /*
-         Input string must be all digits or errors will occur.
-         */
-        let D = precision
-        var chs = [Character](s)
-        
-        /* Round, handle carry */
-        if D>0 && chs[D] >= "5" {
-            chs[D-1] += 1
-            
-            var i = D-1
-            while i > 0 && chs[i] > "9" {
-                chs[i] -= 10
-                i -= 1
-                s[i] += 1
-            }
-        }
-        
-        /* If first digit is 10, shift everything. */
-        if (chs[0] > "9") {
-            // e++; // don't modify exponent here
-            for i in stride(from: precision, through: 1, by: -1) { s[i+1] = s[i] }
-            s[0] = "1";
-            s[1] = "0";
-            
-            offset+=1    // now offset needs to be increased by one
-            precision+=1
-        }
-        s = String(chs)
-    }
- 
-    public func toString(_ precision:Int=0, _ width:Int=0, _ fmt:FmtFlags=[], _ showpos:Bool = false, _ uppercase:Bool = false, _ fill: Character = " ") -> String {
-        var s = ""
-        let fixed = fmt.contains(.fixed)
-        var sgn = true
-        var e = 0
-        
-        if self.isNaN {
-            s = uppercase ? "NAN" : "nan"
-            sgn = false
-        } else {
-            if self < 0.0 {
-                s += "-"
-            } else if showpos {
-                s += "+"
-            } else {
-                sgn = false
-            }
-            
-            if self.isInfinite {
-                s += uppercase ? "INF" : "inf"
-            } else if self.isZero {
-                /* Zero case */
-                s += "0"
-                if precision > 0 {
-                    s += "."
-                    s += "".padding(toLength: precision, withPad: "0", startingAt: 0)
-                }
-            } else {
-                /* Non-zero case */
-                var off = fixed ? (1 + DDouble.floor(DDouble.log10(self.abs)).int) : 1
-                var d = precision + off
-                
-                var d_with_extra = d
-                if fixed {
-                    d_with_extra = max(60, d) // longer than the max accuracy for DD
-                }
-                
-                // highly special case - fixed mode, precision is zero, abs(*this) < 1.0
-                // without this trap a number like 0.9 printed fixed with 0 precision prints as 0
-                // should be rounded to 1.
-                if fixed && (precision == 0) && (self.abs < 1.0) {
-                    if self.abs >= 0.5 {
-                        s += "1"
-                    } else {
-                        s += "0"
-                    }
-                    return s
-                }
-                
-                // handle near zero to working precision (but not exactly zero)
-                if (fixed && d <= 0) {
-                    s += "0";
-                    if (precision > 0) {
-                        s += ".";
-                        s += "".padding(toLength: precision, withPad: "0", startingAt: 0)
-                    }
-                } else { // default
-                    var t="" //  = new char[d+1];
-                    if (fixed) {
-                        to_digits(&t, &e, d_with_extra);
-                    } else {
-                        to_digits(&t, &e, d);
-                    }
-                    
-                    off = e + 1;
-                    
-                    if fixed {
-                        // fix the string if it"s been computed incorrectly
-                        // round here in the decimal string if required
-                        roundString(&t, &d, offset: &off);
-                        
-                        if (off > 0) {
-                            for _ in 0..<off { s.append(t.removeFirst()) }
-                            if precision > 0 {
-                                s += "."
-                                for _ in 0..<precision { s.append(t.removeFirst()) }
-                            }
-                        } else {
-                            s += "0."
-                            if off < 0 { s += "".padding(toLength: -off, withPad: "0", startingAt: 0) }
-                            for _ in 0..<d { s.append(t.removeFirst()) }
-                        }
-                    } else {
-                        s.append(t.removeFirst())
-                        if (precision > 0) { s += "." }
-                        for _ in 1...precision { s.append(t.removeFirst()) }
-                    }
-                }
-            }
-            
-            // trap for improper offset with large values
-            // without this trap, output of values of the for 10^j - 1 fail for j > 28
-            // and are output with the point in the wrong place, leading to a dramatically off value
-            if (fixed && (precision > 0)) {
-                // make sure that the value isn't dramatically larger
-                let from_string = atof(s.cString(using: .ascii))
-                
-                // if this ratio is large, then we"ve got problems
-                if fabs(from_string / self.x[0]) > 3.0 {
-                    // loop on the string, find the point, move it up one
-                    // don't act on the first character
-                    for (i,c) in s.dropFirst().enumerated() {
-                        if c == "." {
-                            let dot = s.remove(at: s.index(s.startIndex, offsetBy: i))
-                            s.insert(dot, at: s.index(s.startIndex, offsetBy: i-1))
-                            break
-                        }
-                    }
-                    
-                    let from_string = atof(s.cString(using: .ascii))
-                    // if this ratio is large, then the string has not been fixed
-                    if fabs(from_string / self.x[0]) > 3.0 {
-                        print("Re-rounding unsuccessful in large number fixed point trap.") ;
-                    }
-                }
-            }
-            
-            
-            if !fixed && !self.isInfinite {
-                /* Fill in exponent part */
-                s += uppercase ? "E" : "e";
-                append_expn(&s, e);
-            }
-        }
-        
-        /* Fill in the blanks */
-        let len = s.count
-        if len < width {
-            let delta = width - len
-            let pad = "".padding(toLength: delta, withPad: String(fill), startingAt: 0)
-            if fmt.contains(.intern) {
-                if sgn {
-                    let index = s.index(s.startIndex, offsetBy: 1)
-                    s.insert(contentsOf: pad, at:index)
-                } else {
-                    s.insert(contentsOf: pad, at: s.startIndex)
-                }
-            } else if fmt.contains(.left) {
-                s += pad
-            } else {
-                s.insert(contentsOf: pad, at: s.startIndex)
-            }
-        }
-        
-        return s
-    }
-    
-    private func append_expn(_ str: inout String, _ expn: Int) {
-        str += expn < 0 ? "-" : "+"
-        var expn = Swift.abs(expn)
-        
-        var k: Int
-        if expn >= 100 {
-            k = (expn / 100);
-            str += String(k)
-            expn -= 100*k;
-        }
-        
-        k = (expn / 10);
-        str += String(k)
-        expn -= 10*k
-        
-        str += String(expn)
-    }
-    
-    public var description: String { self.toString() }
-    
+    public var description: String { self.string(DDouble.digits) }
 }
+
+extension DDouble : CustomDebugStringConvertible {
+    public var debugDescription: String {
+        var str = "[\n"
+        str += Common.doubleInfo(x.x) + ",\n"
+        str += Common.doubleInfo(x.y) + "\n]"
+        return str
+    }
+}
+
+extension DDouble : Codable { }
 
 extension DDouble : ExpressibleByIntegerLiteral {
     public init(integerLiteral value: Int) { self.init(value) }
@@ -808,13 +560,16 @@ extension DDouble : ExpressibleByFloatLiteral {
     public init(floatLiteral value: Double) { self.init(value) }
 }
 
+extension DDouble : ExpressibleByStringLiteral {
+    public init(stringLiteral value: String) { self.init(value) }
+}
+
 extension DDouble : Strideable {
     public func distance(to other: DDouble) -> DDouble { (self - other).abs }
     public func advanced(by n: DDouble) -> DDouble { self + n }
 }
 
 extension DDouble : Numeric {
-    
     public var magnitude: DDouble { self.abs }
     
     private static var bits:Int { 104 }
@@ -924,7 +679,7 @@ extension DDouble : FloatingPoint {
         if a.isZero { return 0.0 }
         
         if a.isNegative {
-            print("(DDouble.sqrt): Negative argument.")
+            Common.error("(DDouble.sqrt): Negative argument.")
             return _nan
         }
         
@@ -933,6 +688,48 @@ extension DDouble : FloatingPoint {
         return DDouble.add(ax, (a - DDouble.sqr(ax)).x[0] * (x * 0.5))
     }
     
+    /// Computes the square root of a double in double-double precision.
+    /// NOTE: d must not be negative.                                   */
+    public static func sqrt(_ a:Double) -> DDouble { sqrt(DDouble(a)) }
+    
+    /// Computes the n-th root of the double-double number a.
+    ///   NOTE: n must be a positive integer.
+    ///   NOTE: If n is even, then a must not be negative.
+    public static func nroot(_ a:DDouble, _ n:Int) -> DDouble {
+        /* Strategy:  Use Newton iteration for the function
+         
+         f(x) = x^(-n) - a
+         
+         to find its root a^{-1/n}.  The iteration is thus
+         
+         x' = x + x * (1 - a * x^n) / n
+         
+         which converges quadratically.  We can then find
+         a^{1/n} by taking the reciprocal.
+         */
+        guard n>=0 else {
+            Common.error("(DDouble.nroot): N must be positive.")
+            return _nan
+        }
+        
+        guard !(n.isMultiple(of: 2) && a.isNegative) else {
+            Common.error("(DDouble.nroot): Negative argument.");
+            return _nan
+        }
+        
+        if n == 1 { return a }
+        if n == 2 { return sqrt(a) }
+        if a.isZero { return 0.0 }
+        
+        /* Note  a^{-1/n} = exp(-log(a)/n) */
+        let r = a.abs
+        var x = DDouble(Foundation.exp(-Foundation.log(r.x[0]) / Double(n)))
+        
+        /* Perform Newton's iteration. */
+        x += x * (1.0 - r * x ** n) / Double(n)
+        if a.x[0] < 0.0 { x = -x }
+        return 1.0/x
+    }
     
     /// Exponential.  Computes exp(x) in double-double precision.
     public static func exp(_ a: DDouble) -> DDouble {
@@ -1005,7 +802,7 @@ extension DDouble : FloatingPoint {
         if a.isOne { return 0.0 }
         
         if a.x[0] <= 0.0 {
-            print("(DDouble.log): Non-positive argument.")
+            Common.error("(DDouble.log): Non-positive argument.")
             return _nan
         }
         
@@ -1013,10 +810,512 @@ extension DDouble : FloatingPoint {
         x = x + a * exp(-x) - 1.0
         return x
     }
-
-    public static func log10(_ a: DDouble) -> DDouble { log(a) / _log10 }
     
-    static let inv_fact : [[Double]] = [
+    /// Computes sin(a) using Taylor series.
+    /// Assumes |a| <= pi/32.
+    static private func sin_taylor(_ a: DDouble) -> DDouble {
+        let thresh = 0.5 * Foundation.fabs(a.double) * _eps
+        
+        if a.isZero { return 0.0 }
+        
+        var i = 0
+        let x = -sqr(a)
+        var s = a
+        var r = a
+        var t: DDouble
+        repeat {
+            r *= x
+            t = r * DDouble(inv_fact[i][0], inv_fact[i][1])
+            s += t
+            i += 2
+        } while (i < inv_fact.count && Foundation.fabs(t.double) > thresh)
+        
+        return s
+    }
+
+    static private func cos_taylor(_ a: DDouble) -> DDouble {
+        let thresh = 0.5 * Foundation.fabs(a.double) * _eps
+        
+        if a.isZero { return 1.0 }
+        
+        let x = -sqr(a)
+        var r = x
+        var s = 1.0 + mul_pwr2(r, 0.5);
+        var i = 1
+        var t: DDouble
+        repeat {
+            r *= x
+            t = r * DDouble(inv_fact[i][0], inv_fact[i][1])
+            s += t
+            i += 2
+        } while (i < inv_fact.count && Foundation.fabs(t.double) > thresh)
+        
+        return s
+    }
+
+    static private func sincos_taylor(_ a: DDouble) -> (sina: DDouble, cosa: DDouble) {
+        if a.isZero { return (0.0, 1.0) }
+        let sina = sin_taylor(a)
+        return (sina, sqrt(1.0 - sqr(sina)))
+    }
+    
+    static public func sin(_ a: DDouble) -> DDouble {
+        /* Strategy.  To compute sin(x), we choose integers a, b so that
+         
+         x = s + a * (pi/2) + b * (pi/16)
+         
+         and |s| <= pi/32.  Using the fact that
+         
+         sin(pi/16) = 0.5 * sqrt(2 - sqrt(2 + sqrt(2)))
+         
+         we can compute sin(x) from sin(s), cos(s).  This greatly
+         increases the convergence of the sine Taylor series. */
+        if a.isZero { return 0.0 }
+        
+        // approximately reduce modulo 2*pi
+        let z : DDouble = nint(a / _2pi)
+        var r = a - _2pi * z
+        
+        // approximately reduce modulo pi/2 and then modulo pi/16.
+        var q = Foundation.floor(r.x[0] / _pi2.x[0] + 0.5)
+        var t = r - _pi2 * q
+        let j = Int(q)
+        q = Foundation.floor(t.x[0] / _pi16.x[0] + 0.5)
+        t -= _pi16 * q
+        let k = Int(q)
+        let abs_k = Swift.abs(k)
+        
+        if (j < -2 || j > 2) {
+            Common.error("(DDouble.sin): Cannot reduce modulo pi/2.")
+            return _nan
+        }
+        
+        if (abs_k > 4) {
+            Common.error("(DDouble.sin): Cannot reduce modulo pi/16.")
+            return _nan
+        }
+        
+        if k == 0 {
+            switch j {
+                case 0:  return sin_taylor(t)
+                case 1:  return cos_taylor(t)
+                case -1: return -cos_taylor(t)
+                default: return -sin_taylor(t)
+            }
+        }
+        
+        let u = DDouble(cos_table[abs_k-1][0], cos_table[abs_k-1][1])
+        let v = DDouble(sin_table[abs_k-1][0], sin_table[abs_k-1][1])
+        let (sin_t, cos_t) = sincos_taylor(t)
+        if j == 0 {
+            if k > 0 {
+                r = u * sin_t + v * cos_t
+            } else {
+                r = u * sin_t - v * cos_t
+            }
+        } else if j == 1 {
+            if k > 0 {
+                r = u * cos_t - v * sin_t
+            } else {
+                r = u * cos_t + v * sin_t
+            }
+        } else if j == -1 {
+            if k > 0 {
+                r = v * sin_t - u * cos_t
+            } else if k < 0 {
+                r = -u * cos_t - v * sin_t
+            }
+        } else {
+            if k > 0 {
+                r = -u * sin_t - v * cos_t
+            } else {
+                r = v * cos_t - u * sin_t
+            }
+        }
+        return r
+    }
+
+    static public func cos(_ a: DDouble) -> DDouble {
+        if a.isZero { return 1.0 }
+        
+        // approximately reduce modulo 2*pi
+        let z : DDouble = nint(a / _2pi)
+        var r = a - z * _2pi
+        
+        // approximately reduce modulo pi/2 and then modulo pi/16
+        var q = Foundation.floor(r.x[0] / _pi2.x[0] + 0.5);
+        var t = r - _pi2 * q;
+        let j = Int(q);
+        q = Foundation.floor(t.x[0] / _pi16.x[0] + 0.5);
+        t -= _pi16 * q;
+        let k = Int(q)
+        let abs_k = Swift.abs(k)
+        
+        if (j < -2 || j > 2) {
+            Common.error("(DDouble.cos): Cannot reduce modulo pi/2.")
+            return _nan
+        }
+        
+        if (abs_k > 4) {
+            Common.error("(DDouble.cos): Cannot reduce modulo pi/16.")
+            return _nan
+        }
+        
+        if k == 0 {
+            switch j {
+                case 0:  return cos_taylor(t)
+                case 1:  return -sin_taylor(t)
+                case -1: return sin_taylor(t)
+                default: return -cos_taylor(t)
+            }
+        }
+        
+        let (sin_t, cos_t) = sincos_taylor(t)
+        let u = DDouble(cos_table[abs_k-1][0], cos_table[abs_k-1][1])
+        let v = DDouble(sin_table[abs_k-1][0], sin_table[abs_k-1][1])
+        
+        if (j == 0) {
+            if (k > 0) {
+                r = u * cos_t - v * sin_t;
+            } else {
+                r = u * cos_t + v * sin_t;
+            }
+        } else if (j == 1) {
+            if (k > 0) {
+                r = -u * sin_t - v * cos_t;
+            } else {
+                r = v * cos_t - u * sin_t;
+            }
+        } else if (j == -1) {
+            if (k > 0) {
+                r = u * sin_t + v * cos_t;
+            } else {
+                r = u * sin_t - v * cos_t;
+            }
+        } else {
+            if (k > 0) {
+                r = v * sin_t - u * cos_t;
+            } else {
+                r = -u * cos_t - v * sin_t;
+            }
+        }
+        return r
+    }
+
+    static public func sincos(_ a: DDouble) -> (sina: DDouble, cosa: DDouble) {
+        if a.isZero { return (0.0, 1.0) }
+        
+        // approximately reduce modulo 2*pi
+        let z = nint(a / _2pi);
+        let r = a - _2pi * z;
+        
+        // approximately reduce module pi/2 and pi/16
+        var q = Foundation.floor(r.x[0] / _pi2.x[0] + 0.5)
+        var t = r - _pi2 * q
+        let j = Int(q)
+        let abs_j = Swift.abs(j)
+        q = Foundation.floor(t.x[0] / _pi16.x[0] + 0.5)
+        t -= _pi16 * q
+        let k = Int(q)
+        let abs_k = Swift.abs(k)
+        
+        if abs_j > 2 {
+            Common.error("(DDouble.sincos): Cannot reduce modulo pi/2.")
+            return (_nan, _nan)
+        }
+        
+        if abs_k > 4 {
+            Common.error("(DDouble.sincos): Cannot reduce modulo pi/16.")
+            return (_nan, _nan)
+        }
+        
+        let (sin_t, cos_t) = sincos_taylor(t)
+        let s,c: DDouble
+        if abs_k == 0 {
+            s = sin_t
+            c = cos_t
+        } else {
+            let u = DDouble(cos_table[abs_k-1][0], cos_table[abs_k-1][1])
+            let v = DDouble(sin_table[abs_k-1][0], sin_table[abs_k-1][1])
+            
+            if (k > 0) {
+                s = u * sin_t + v * cos_t;
+                c = u * cos_t - v * sin_t;
+            } else {
+                s = u * sin_t - v * cos_t;
+                c = u * cos_t + v * sin_t;
+            }
+        }
+        
+        if abs_j == 0   { return (s, c) }
+        else if j == 1  { return (c, -s) }
+        else if j == -1 { return (-c, s) }
+        else            { return (-s, -c) }
+    }
+
+    static public func atan(_ a: DDouble) -> DDouble { atan2(a, DDouble(1.0)) }
+
+    static public func atan2(_ y: DDouble, _ x: DDouble) -> DDouble {
+        /* Strategy: Instead of using Taylor series to compute
+         arctan, we instead use Newton's iteration to solve
+         the equation
+         
+         sin(z) = y/r    or    cos(z) = x/r
+         
+         where r = sqrt(x^2 + y^2).
+         The iteration is given by
+         
+         z' = z + (y - sin(z)) / cos(z)          (for equation 1)
+         z' = z - (x - cos(z)) / sin(z)          (for equation 2)
+         
+         Here, x and y are normalized so that x^2 + y^2 = 1.
+         If |x| > |y|, then first iteration is used since the
+         denominator is larger.  Otherwise, the second is used.
+         */
+        if x.isZero {
+            if y.isZero {
+                /* Both x and y are zero. */
+                Common.error("(DDouble.atan2): Both arguments zero.");
+                return _nan
+            }
+            return y.isPositive ? _pi2 : -_pi2
+        } else if y.isZero {
+            return x.isPositive ? 0.0 : _pi
+        }
+        
+        if x == y {
+            return y.isPositive ? _pi4 : -_3pi4
+        }
+        
+        if x == -y {
+            return y.isPositive ? _3pi4 : -_pi4
+        }
+        
+        let r = sqrt(sqr(x) + sqr(y))
+        let xx = x / r;
+        let yy = y / r;
+        
+        /* Compute double precision approximation to atan. */
+        var z = DDouble(Foundation.atan2(y.double, x.double))
+        let (sin_z, cos_z) = sincos(z)
+        if Swift.abs(xx.x[0]) > Swift.abs(yy.x[0]) {
+            /* Use Newton iteration 1.  z' = z + (y - sin(z)) / cos(z)  */
+            z += (yy - sin_z) / cos_z
+        } else {
+            /* Use Newton iteration 2.  z' = z - (x - cos(z)) / sin(z)  */
+            z -= (xx - cos_z) / sin_z
+        }
+        return z
+    }
+    
+    static public func tan(_ a: DDouble) -> DDouble {
+      let (s, c) = sincos(a)
+      return s/c
+    }
+
+    static public func asin(_ a: DDouble) -> DDouble {
+        let abs_a = abs(a);
+        
+        if abs_a > 1.0 {
+            Common.error("(DDouble.asin): Argument out of domain.");
+            return _nan;
+        }
+        
+        if abs_a.isOne {
+            return a.isPositive ? _pi2 : -_pi2
+        }
+        
+        return atan2(a, sqrt(1.0 - sqr(a)))
+    }
+
+    static public func acos(_ a: DDouble) -> DDouble {
+        let abs_a = abs(a);
+        
+        if abs_a > 1.0 {
+            Common.error("(DDouble.acos): Argument out of domain.");
+            return _nan;
+        }
+        
+        if abs_a.isOne {
+            return a.isPositive ? 0.0 : _pi
+        }
+        return atan2(sqrt(1.0 - sqr(a)), a)
+    }
+    
+    static public func sinh(_ a: DDouble) -> DDouble {
+        if a.isZero { return 0.0 }
+        
+        if abs(a) > 0.05 {
+            let ea = exp(a);
+            return mul_pwr2(ea - inv(ea), 0.5);
+        }
+        
+        /* since a is small, using the above formula gives
+         a lot of cancellation.  So use Taylor series.   */
+        var s = a;
+        var t = a;
+        let r = sqr(t)
+        var m = 1.0
+        let thresh = Swift.abs(a.double) * _eps
+        
+        repeat {
+            m += 2.0;
+            t *= r;
+            t /= (m-1) * m;
+            s += t
+        } while (abs(t) > thresh)
+
+        return s
+    }
+
+    static public func cosh(_ a: DDouble) -> DDouble {
+        if a.isZero { return 1.0 }
+        
+        let ea = exp(a)
+        return mul_pwr2(ea + inv(ea), 0.5)
+    }
+
+    static public func tanh(_ a: DDouble) -> DDouble {
+        if a.isZero { return 0.0 }
+        
+        if Swift.abs(a.double) > 0.05 {
+            let ea = exp(a);
+            let inv_ea = inv(ea)
+            return (ea - inv_ea) / (ea + inv_ea)
+        } else {
+            let s = sinh(a)
+            let c = sqrt(1.0 + sqr(s))
+            return s / c
+        }
+    }
+
+    static public func sinhcosh(_ a: DDouble) -> (sina: DDouble, cosa: DDouble) {
+        let s,c:DDouble
+        if Swift.abs(a.double) <= 0.05 {
+            s = sinh(a);
+            c = sqrt(1.0 + sqr(s));
+        } else {
+            let ea = exp(a)
+            let inv_ea = inv(ea)
+            s = mul_pwr2(ea - inv_ea, 0.5)
+            c = mul_pwr2(ea + inv_ea, 0.5)
+        }
+        return (s,c)
+    }
+
+    static public func asinh(_ a: DDouble) -> DDouble { log(a + sqrt(sqr(a) + 1.0)) }
+
+    static public func acosh(_ a: DDouble) -> DDouble {
+        if a < 1.0 {
+            Common.error("(DDouble.acosh): Argument out of domain.")
+            return _nan
+        }
+        return log(a + sqrt(sqr(a) - 1.0))
+    }
+
+    static public func atanh(_ a: DDouble) -> DDouble {
+        if abs(a) >= 1.0 {
+            Common.error("(dd_real::atanh): Argument out of domain.")
+            return _nan
+        }
+        return mul_pwr2(log((1.0 + a) / (1.0 - a)), 0.5)
+    }
+
+    static public func fmod(_ a: DDouble, _ b: DDouble) -> DDouble {
+        let n = aint(a / b)
+        return a - b * n
+    }
+    
+    static public func ddrand() -> DDouble {
+        let m_const = 4.6566128730773926e-10  /* = 2^{-31} */
+        var m = m_const
+        var r = DDouble(0.0)
+        
+        /* Strategy:  Generate 31 bits at a time, using lrand48
+         random number generator.  Shift the bits, and reapeat
+         4 times. */
+        
+        for _ in 0..<4 {
+            //    d = lrand48() * m;
+            let d = Double(Foundation.arc4random()) * m
+            r += d
+            m *= m_const
+        }
+        return r
+    }
+
+    /// polyeval(c, n, x)
+    ///   Evaluates the given n-th degree polynomial at x.
+    ///   The polynomial is given by the array of (n+1) coefficients.
+    static public func polyeval(_ c:[DDouble], _ n:Int, _ x:DDouble) -> DDouble {
+      /* Just use Horner's method of polynomial evaluation. */
+      var r = c[n]
+      
+      for i in stride(from: n-1, through: 0, by: -1) {
+        r *= x
+        r += c[i]
+      }
+      return r
+    }
+
+    /* polyroot(c, n, x0)
+       Given an n-th degree polynomial, finds a root close to
+       the given guess x0.  Note that this uses simple Newton
+       iteration scheme, and does not work for multiple roots.  */
+    static public func polyroot(_ c:[DDouble], _ n:Int, _ x0:DDouble, _ max_iter:Int, _ thresh:Double) -> DDouble {
+        var x = x0
+        var d = [DDouble](repeating: 0, count: n)
+        var conv = false;
+        var max_c = Swift.abs(c[0].double)
+        var thresh = thresh
+        
+        if thresh == 0.0 { thresh = _eps }
+        
+        /* Compute the coefficients of the derivatives. */
+        for i in 1...n {
+            let v = Swift.abs(c[i].double)
+            if v > max_c { max_c = v }
+            d[i-1] = c[i] * Double(i)
+        }
+        thresh *= max_c;
+        
+        /* Newton iteration. */
+        for _ in 0..<max_iter {
+            let f = polyeval(c, n, x)
+            if abs(f) < thresh {
+                conv = true
+                break
+            }
+            x -= (f / polyeval(d, n-1, x))
+        }
+        if !conv {
+            Common.error("(DDouble.polyroot): Failed to converge.")
+            return _nan
+        }
+        return x
+    }
+
+    public static func log10(_ a: DDouble) -> DDouble { log(a) / Log10 }
+    public static func abs(_ a: DDouble) -> DDouble { a.abs }
+    
+    static private let _pi16 = DDouble(1.963495408493620697e-01, 7.654042494670957545e-18)
+
+    /* Table of sin(k * pi/16) and cos(k * pi/16). */
+    static private let sin_table : [[Double]] = [
+      [1.950903220161282758e-01, -7.991079068461731263e-18],
+      [3.826834323650897818e-01, -1.005077269646158761e-17],
+      [5.555702330196021776e-01,  4.709410940561676821e-17],
+      [7.071067811865475727e-01, -4.833646656726456726e-17]
+    ]
+
+    static private let cos_table : [[Double]] = [
+      [9.807852804032304306e-01, 1.854693999782500573e-17],
+      [9.238795325112867385e-01, 1.764504708433667706e-17],
+      [8.314696123025452357e-01, 1.407385698472802389e-18],
+      [7.071067811865475727e-01, -4.833646656726456726e-17]
+    ]
+    
+    static private let inv_fact : [[Double]] = [
       [ 1.66666666666666657e-01,  9.25185853854297066e-18],
       [ 4.16666666666666644e-02,  2.31296463463574266e-18],
       [ 8.33333333333333322e-03,  1.15648231731787138e-19],

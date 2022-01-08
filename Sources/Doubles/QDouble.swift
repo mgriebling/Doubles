@@ -69,7 +69,7 @@ public struct QDouble {
     public static let inf =     QDouble(Double.infinity, Double.infinity, Double.infinity, Double.infinity)
     
     public static let eps =     1.21543267145725e-63       // = 2^-209
-    public static let ndigits = 62
+    public static let digits = 62
     public static let max =     QDouble(1.79769313486231570815e+308, 9.97920154767359795037e+291, 5.53956966280111259858e+275, 3.07507889307840487279e+259)
     
     private static let _min_normalized = 1.6259745436952323e-260    // = 2^(-1022 + 3*53)
@@ -79,7 +79,7 @@ public struct QDouble {
     //
     // number storage
     //
-    private var x : SIMD4<Double>        // gives a bit better performance than [Double]
+    private(set) var x : SIMD4<Double>        // gives a bit better performance than [Double]
 
     //
     // Initialization routines
@@ -105,10 +105,10 @@ public struct QDouble {
     init (_ d4: SIMD4<Double>) { x = d4 }
     
     public init (_ s: String) {
-        if let q = QDouble.toQuad(s) {
+        if let q : QDouble = Common.toFloat(s) {
             x = q.x
         } else {
-            QDouble.error("(Quad.init): STRING CONVERT ERROR.")
+            Common.error("(Quad.init): STRING CONVERT ERROR.")
             x = QDouble.nan.x
         }
     }
@@ -209,7 +209,7 @@ public struct QDouble {
     
     /** Computes the nearest integer to d. */
     private static func nint(_ d: Double) -> Double { d == Foundation.floor(d) ? d : Foundation.floor(d + 0.5) }
-    public static func aint(_ a:QDouble) -> QDouble { a.x[0] >= 0 ? floor(a) : ceil(a) }
+    public static func trunc(_ a:QDouble) -> QDouble { a.x[0] >= 0 ? floor(a) : ceil(a) }
     
     /********** Renormalization **********/
     fileprivate static func quick_renorm(_ c0: inout Double, _ c1: inout Double, _ c2: inout Double, _ c3: inout Double, _ c4: inout Double) {
@@ -695,10 +695,10 @@ public struct QDouble {
     public var isPositive: Bool { x[0] > 0 }
     public var isNegative: Bool { x[0] < 0 }
 
-    static public func trunc(_ a: QDouble) -> QDouble { a.x[0] >= 0 ? floor(a) : ceil(a) }
-    static public func double(_ a: QDouble) -> Double { a.x[0] }
-    static public func int(_ a: QDouble) -> Int       { Int(a.x[0]) }
     static public func inv(_ qd: QDouble) -> QDouble  { 1.0 / qd }
+    
+    public var double: Double { x[0] }
+    public var int: Int       { Int(x[0]) }
     
     static fileprivate func max(_ a: [QDouble]) -> QDouble  {
         var a = a
@@ -723,8 +723,6 @@ public struct QDouble {
     static public func ldexp(_ a: QDouble, _ n: Int) -> QDouble {
         QDouble(scalbn(a[0], n), scalbn(a[1], n), scalbn(a[2], n), scalbn(a[3], n))
     }
-
-    fileprivate static func error(_ msg: String) { print("ERROR " + msg) }
     
     static public func nint(_ a: QDouble) -> QDouble {
         var x0, x1, x2, x3: Double
@@ -874,363 +872,369 @@ public struct QDouble {
     
     static public func / (_ a: QDouble, _ b: QDouble) -> QDouble { SLOPPY_DIV ? sloppy_div(a, b) : accurate_div(a, b) }
     
-    static public func <= (_ a:QDouble,_ b:QDouble) -> Bool { b >= a }
+    static public func <= (_ a:QDouble,_ b:QDouble) -> Bool {
+        a[0] < b[0] || (a[0] == b[0] && (a[1] < b[1] || (a[1] == b[1] && (a[2] < b[2] || (a[2] == b[2] && a[3] <= b[3])))))
+    }
+    
+    public func string(_ precision: Int, width: Int=0, fmt:Format=[], showpos: Bool = false, uppercase: Bool = false, fill: String = " ") -> String {
+        Common.string(self, precision, width: width, fmt: fmt, showpos: showpos, uppercase: uppercase, fill: fill)
+    }
     
     /** Initialize a quad-Double from string *s*. */
-    static public func toQuad(_ s: String) -> QDouble? {
-        var p = s.trimmingCharacters(in: CharacterSet.whitespaces)
-        
-        func getChar() -> Character {
-            if p.isEmpty { return "\0" }
-            return p.remove(at: s.startIndex)
-        }
-        
-        var ch: Character = getChar()
-        var sign = 0
-        var point = -1        /* location of decimal point */
-        var nd = 0            /* number of digits read */
-        var e = 0            /* exponent. */
-        var done = false
-        var r = QDouble(0.0)    /* number being read */
-        
-        while !done && ch != "\0" {
-            if ch >= "0" && ch <= "9" {
-                /* It's a digit */
-                if let d = Int(String(ch)) {
-                    r *= 10.0
-                    r += Double(d)
-                    nd += 1
-                }
-            } else {
-                /* Non-digit */
-                switch ch {
-                case ".":
-                    if point >= 0 { return nil }   /* we"ve already encountered a decimal point. */
-                    point = nd
-                case "-", "+":
-                    if sign != 0 || nd > 0 { return nil }  /* we"ve already encountered a sign, or if its
-                    not at first position. */
-                    sign = ch == "-" ? -1 : 1
-                case "E", "e":
-                    if let n = Int(p) {
-                        e = n
-                        done = true
-                    } else {
-                        return nil  /* read of exponent failed. */
-                    }
-                case " ":
-                    done = true
-                default:
-                    return nil
-                }
-            }
-            ch = getChar()
-        }
-        
-        /* Adjust exponent to account for decimal point */
-        if point >= 0 { e -= (nd - point) }
-        
-        /* Multiply the the exponent */
-        if e != 0 { r *= (QDouble(10.0) ** e) }
-        
-        return (sign < 0) ? -r : r
-    }
+//    static public func toQuad(_ s: String) -> QDouble? {
+//        var p = s.trimmingCharacters(in: CharacterSet.whitespaces)
+//
+//        func getChar() -> Character {
+//            if p.isEmpty { return "\0" }
+//            return p.remove(at: s.startIndex)
+//        }
+//
+//        var ch: Character = getChar()
+//        var sign = 0
+//        var point = -1        /* location of decimal point */
+//        var nd = 0            /* number of digits read */
+//        var e = 0            /* exponent. */
+//        var done = false
+//        var r = QDouble(0.0)    /* number being read */
+//
+//        while !done && ch != "\0" {
+//            if ch >= "0" && ch <= "9" {
+//                /* It's a digit */
+//                if let d = Int(String(ch)) {
+//                    r *= 10.0
+//                    r += Double(d)
+//                    nd += 1
+//                }
+//            } else {
+//                /* Non-digit */
+//                switch ch {
+//                case ".":
+//                    if point >= 0 { return nil }   /* we"ve already encountered a decimal point. */
+//                    point = nd
+//                case "-", "+":
+//                    if sign != 0 || nd > 0 { return nil }  /* we"ve already encountered a sign, or if its
+//                    not at first position. */
+//                    sign = ch == "-" ? -1 : 1
+//                case "E", "e":
+//                    if let n = Int(p) {
+//                        e = n
+//                        done = true
+//                    } else {
+//                        return nil  /* read of exponent failed. */
+//                    }
+//                case " ":
+//                    done = true
+//                default:
+//                    return nil
+//                }
+//            }
+//            ch = getChar()
+//        }
+//
+//        /* Adjust exponent to account for decimal point */
+//        if point >= 0 { e -= (nd - point) }
+//
+//        /* Multiply the the exponent */
+//        if e != 0 { r *= (QDouble(10.0) ** e) }
+//
+//        return (sign < 0) ? -r : r
+//    }
 
-    fileprivate func to_digits(_ s: inout String, expn: inout Int, precision: Int) {
-        let D = precision + 1  /* number of digits to compute */
-        
-        var r = QDouble.abs(self)
-        var e: Int  /* exponent */
-        var d: Int
-        
-        s = ""
-        if x[0].isZero {
-            /* self == 0.0 */
-            expn = 0
-            for _ in 0..<precision { s += "0" }
-            return
-        }
-        
-        /* First determine the (approximate) exponent. */
-        e = Int(Foundation.floor(Foundation.log10(Swift.abs(x[0]))))
-        
-        if e < -300 {
-            r *= QDouble(10.0) ** 300
-            r /= QDouble(10.0) ** (e + 300)
-        } else if e > 300 {
-            r = QDouble.ldexp(r, -53)
-            r /= QDouble(10.0) ** e
-            r = QDouble.ldexp(r, 53)
-        } else {
-            r /= QDouble(10.0) ** e
-        }
-        
-        /* Fix exponent if we are off by one */
-        if r >= 10.0 {
-            r /= 10.0
-            e += 1
-        } else if r < 1.0 {
-            r *= 10.0
-            e -= 1
-        }
-        
-        if r >= 10.0 || r < 1.0 { QDouble.error("(Quad.to_digits): can't compute exponent."); return }
-        
-        /* Extract the digits */
-        for _ in 0..<D {
-            d = Int(r.x[0])
-            r -= Double(d)
-            r *= 10.0
-            s += "\(d)"
-        }
-        
-        /* Fix out of range digits. */
-        for i in (0..<D).reversed() {
-            if s[i] < "0" {
-                s[i-1] -= 1
-                s[i] += 10
-            } else if s[i] > "9" {
-                s[i-1] += 1
-                s[i] -= 10
-            }
-        }
-        
-        if s[0] < "0" { QDouble.error("(Quad.to_digits): non-positive leading digit."); return }
-        
-        /* Round, handle carry */
-        if s[D-1] >= "5" {
-            s[D-2] += 1
-            
-            var i = D-2
-            while i > 0 && s[i] > "9" {
-                s[i] -= 10
-                i -= 1; s[i] += 1
-            }
-        }
-        
-        /* If first digit is 10, shift everything. */
-        if s[0] > "9" {
-            e += 1
-            s = "1" + s
-            s[1] = "0"
-        }
-
-        expn = e
-    }
-    
-    private static func append_expn(_ str: inout String, expn: Int) {
-        var expn = expn
-        var k: Int
-        
-        str += expn < 0 ? "-" : "+"
-        expn = Swift.abs(expn)
-        
-        if expn >= 100 {
-            k = expn / 100
-            str += "\(k)"
-            expn -= 100*k
-        }
-        
-        k = expn / 10
-        str += "\(k)"
-        expn -= 10*k
-        
-        str += "\(expn)"
-    }
-
-    fileprivate static func round_string_qd(_ s: inout String, precision: Int, offset: inout Int) {
-        /*
-            Input string must be all digits or errors will occur.
-        */
-        let D = precision
-        
-        /* Round, handle carry */
-        if D>0 && s[D] >= "5" {
-            s[D-1] += 1
-            
-            var i = D-1
-            while i > 0 && s[i] > "9" {
-                s[i] -= 10
-                i -= 1; s[i] += 1
-            }
-        }
-        
-        /* If first digit is 10, shift everything. */
-        if s.first! > "9" {
-            // e++ // don't modify exponent here
-            s = "1" + s
-            s[1] = "0"
-            offset += 1    // now offset needs to be increased by one
-        }
-    }
-
-    public enum FormatOptions { case fixed, floating, left, internalx }
-    public typealias Format = Set<FormatOptions>
-
-    public func string(_ precision: Int, width: Int=0, fmt:Format=[], showpos: Bool = false, uppercase: Bool = false, fill: String = " ") -> String {
-        var s: String = ""
-        let fixed : Bool = fmt.contains(.fixed)
-        var sgn = true
-        var e = 0
-        
-        if isInfinite {
-            if self.isNegative { s += "-" }
-            else if showpos { s += "+" }
-            else { sgn = false }
-            s += uppercase ? "INF" : "inf"
-        } else if isNaN {
-            s = uppercase ? "NAN" : "nan"
-            sgn = false
-        } else {
-            if self.isNegative { s += "-" }
-            else if showpos { s += "+" }
-            else { sgn = false }
-            
-            if self.isZero {
-                /* Zero case */
-                s += "0"
-                if precision > 0 {
-                    s += "."
-                    s = s.padding(toLength: precision, withPad: "0", startingAt: s.count)
-                }
-            } else {
-                /* Non-zero case */
-                var off = fixed ? (1 + QDouble.int(QDouble.floor(QDouble.log10(QDouble.abs(self))))) : 1
-                let d = precision + off
-                
-                var d_with_extra = d
-                if fixed { d_with_extra = Swift.max(120, d) } // longer than the max accuracy for DD
-                
-                // highly special case - fixed mode, precision is zero, abs(*this) < 1.0
-                // without this trap a number like 0.9 printed fixed with 0 precision prints as 0
-                // should be rounded to 1.
-                if fixed && precision == 0 && QDouble.abs(self) < 1.0 {
-                    if QDouble.abs(self) >= 0.5 {
-                        s += "1"
-                    } else {
-                        s += "0"
-                    }
-                    
-                    return s
-                }
-                
-                // handle near zero to working precision (but not exactly zero)
-                if fixed && d <= 0 {
-                    s += "0"
-                    if precision > 0 {
-                        s += "."
-                        s = s.padding(toLength: precision, withPad: "0", startingAt: 0)
-                    }
-                } else {  // default
-                    var t : String  = ""
-                    
-                    if fixed { to_digits(&t, expn: &e, precision: d_with_extra) }
-                    else     { to_digits(&t, expn: &e, precision: d) }
-                    
-                    off = e + 1
-                    
-                    if fixed {
-                        // fix the string if it's been computed incorrectly
-                        // round here in the decimal string if required
-                        QDouble.round_string_qd(&t, precision: d, offset: &off)
-                        
-                        if off > 0 {
-                            for i in 0..<off { s += String(t[i]) }
-                            if precision > 0 {
-                                s += "."
-                                var i = off
-                                for _ in 0..<precision { s += String(t[i]); i += 1 }
-                            }
-                        } else {
-                            s += "0."
-                            if off < 0 { s = s.padding(toLength: -off, withPad: "0", startingAt: s.count) }
-                            for i in 0..<d { s += String(t[i]) }
-                        }
-                    } else {
-                        s += String(t[0])
-                        if precision > 0 { s += "." }
-                        
-                        for i in 1...precision {
-                            s += String(t[i])
-                        }
-                    }
-                }
-            }
-            
-            // trap for improper offset with large values
-            // without this trap, output of values of the for 10^j - 1 fail for j > 28
-            // and are output with the point in the wrong place, leading to a dramatically off value
-            if fixed && precision > 0 {
-                // make sure that the value isn't dramatically larger
-                var from_string = atof(s)
-                
-                // if this ratio is large, then we"ve got problems
-                if fabs( from_string / self.x[0] ) > 3.0 {
-                    
-                    // loop on the string, find the point, move it up one
-                    // don't act on the first character
-                    for i in 1...s.count {
-                        if s[i] == "." {
-                            s[i] = s[i-1]
-                            s[i-1] = "."
-                            break
-                        }
-                    }
-                    
-                    from_string = atof(s)
-                    // if this ratio is large, then the string has not been fixed
-                    if fabs( from_string / self.x[0] ) > 3.0 {
-                        QDouble.error("Re-rounding unsuccessful in large number fixed point trap.")
-                    }
-                }
-            }
-            
-            if !fixed {
-                /* Fill in exponent part */
-                s += uppercase ? "E" : "e"
-                QDouble.append_expn(&s, expn: e)
-            }
-        }
-        
-        /* Fill in the blanks */
-        let len = s.count
-        if len < width {
-            if fmt.contains(.internalx) {
-                if sgn {
-                    s = s.padding(toLength: width, withPad: fill, startingAt: 1)
-                } else {
-                    s = s.padding(toLength: width, withPad: fill, startingAt: 0)
-                }
-            } else if fmt.contains(.left) {
-                s = s.padding(toLength: width, withPad: fill, startingAt: s.count)
-            } else {
-                s = s.padding(toLength: width, withPad: fill, startingAt: 0)
-            }
-        }
-        
-        return s
-    }
+//    fileprivate func to_digits(_ s: inout String, expn: inout Int, precision: Int) {
+//        let D = precision + 1  /* number of digits to compute */
+//        
+//        var r = QDouble.abs(self)
+//        var e: Int  /* exponent */
+//        var d: Int
+//        
+//        s = ""
+//        if x[0].isZero {
+//            /* self == 0.0 */
+//            expn = 0
+//            for _ in 0..<precision { s += "0" }
+//            return
+//        }
+//        
+//        /* First determine the (approximate) exponent. */
+//        e = Int(Foundation.floor(Foundation.log10(Swift.abs(x[0]))))
+//        
+//        if e < -300 {
+//            r *= QDouble(10.0) ** 300
+//            r /= QDouble(10.0) ** (e + 300)
+//        } else if e > 300 {
+//            r = QDouble.ldexp(r, -53)
+//            r /= QDouble(10.0) ** e
+//            r = QDouble.ldexp(r, 53)
+//        } else {
+//            r /= QDouble(10.0) ** e
+//        }
+//        
+//        /* Fix exponent if we are off by one */
+//        if r >= 10.0 {
+//            r /= 10.0
+//            e += 1
+//        } else if r < 1.0 {
+//            r *= 10.0
+//            e -= 1
+//        }
+//        
+//        if r >= 10.0 || r < 1.0 { Common.error("(Quad.to_digits): can't compute exponent."); return }
+//        
+//        /* Extract the digits */
+//        for _ in 0..<D {
+//            d = Int(r.x[0])
+//            r -= Double(d)
+//            r *= 10.0
+//            s += "\(d)"
+//        }
+//        
+//        /* Fix out of range digits. */
+//        for i in (0..<D).reversed() {
+//            if s[i] < "0" {
+//                s[i-1] -= 1
+//                s[i] += 10
+//            } else if s[i] > "9" {
+//                s[i-1] += 1
+//                s[i] -= 10
+//            }
+//        }
+//        
+//        if s[0] < "0" { Common.error("(Quad.to_digits): non-positive leading digit."); return }
+//        
+//        /* Round, handle carry */
+//        if s[D-1] >= "5" {
+//            s[D-2] += 1
+//            
+//            var i = D-2
+//            while i > 0 && s[i] > "9" {
+//                s[i] -= 10
+//                i -= 1; s[i] += 1
+//            }
+//        }
+//        
+//        /* If first digit is 10, shift everything. */
+//        if s[0] > "9" {
+//            e += 1
+//            s = "1" + s
+//            s[1] = "0"
+//        }
+//
+//        expn = e
+//    }
+//    
+//    private static func append_expn(_ str: inout String, expn: Int) {
+//        var expn = expn
+//        var k: Int
+//        
+//        str += expn < 0 ? "-" : "+"
+//        expn = Swift.abs(expn)
+//        
+//        if expn >= 100 {
+//            k = expn / 100
+//            str += "\(k)"
+//            expn -= 100*k
+//        }
+//        
+//        k = expn / 10
+//        str += "\(k)"
+//        expn -= 10*k
+//        
+//        str += "\(expn)"
+//    }
+//
+//    fileprivate static func round_string(_ s: inout String, precision: Int, offset: inout Int) {
+//        /*
+//            Input string must be all digits or errors will occur.
+//        */
+//        let D = precision
+//        
+//        /* Round, handle carry */
+//        if D>0 && s[D] >= "5" {
+//            s[D-1] += 1
+//            
+//            var i = D-1
+//            while i > 0 && s[i] > "9" {
+//                s[i] -= 10
+//                i -= 1; s[i] += 1
+//            }
+//        }
+//        
+//        /* If first digit is 10, shift everything. */
+//        if s.first! > "9" {
+//            // e++ // don't modify exponent here
+//            s = "1" + s
+//            s[1] = "0"
+//            offset += 1    // now offset needs to be increased by one
+//        }
+//    }
+//
+////    public enum FormatOptions { case fixed, floating, left, internalx }
+////    public typealias Format = Set<FormatOptions>
+//
+//    public func string(_ precision: Int, width: Int=0, fmt:Format=[], showpos: Bool = false, uppercase: Bool = false, fill: String = " ") -> String {
+//        var s: String = ""
+//        let fixed : Bool = fmt.contains(.fixed)
+//        var sgn = true
+//        var e = 0
+//        
+//        if isInfinite {
+//            if self.isNegative { s += "-" }
+//            else if showpos { s += "+" }
+//            else { sgn = false }
+//            s += uppercase ? "INF" : "inf"
+//        } else if isNaN {
+//            s = uppercase ? "NAN" : "nan"
+//            sgn = false
+//        } else {
+//            if self.isNegative { s += "-" }
+//            else if showpos { s += "+" }
+//            else { sgn = false }
+//            
+//            if self.isZero {
+//                /* Zero case */
+//                s += "0"
+//                if precision > 0 {
+//                    s += "."
+//                    s = s.padding(toLength: precision, withPad: "0", startingAt: s.count)
+//                }
+//            } else {
+//                /* Non-zero case */
+//                var off = fixed ? (1 + QDouble.int(QDouble.floor(QDouble.log10(QDouble.abs(self))))) : 1
+//                let d = precision + off
+//                
+//                var d_with_extra = d
+//                if fixed { d_with_extra = Swift.max(120, d) } // longer than the max accuracy for DD
+//                
+//                // highly special case - fixed mode, precision is zero, abs(*this) < 1.0
+//                // without this trap a number like 0.9 printed fixed with 0 precision prints as 0
+//                // should be rounded to 1.
+//                if fixed && precision == 0 && QDouble.abs(self) < 1.0 {
+//                    if QDouble.abs(self) >= 0.5 {
+//                        s += "1"
+//                    } else {
+//                        s += "0"
+//                    }
+//                    
+//                    return s
+//                }
+//                
+//                // handle near zero to working precision (but not exactly zero)
+//                if fixed && d <= 0 {
+//                    s += "0"
+//                    if precision > 0 {
+//                        s += "."
+//                        s = s.padding(toLength: precision, withPad: "0", startingAt: 0)
+//                    }
+//                } else {  // default
+//                    var t : String  = ""
+//                    
+//                    if fixed { to_digits(&t, expn: &e, precision: d_with_extra) }
+//                    else     { to_digits(&t, expn: &e, precision: d) }
+//                    
+//                    off = e + 1
+//                    
+//                    if fixed {
+//                        // fix the string if it's been computed incorrectly
+//                        // round here in the decimal string if required
+//                        QDouble.round_string(&t, precision: d, offset: &off)
+//                        
+//                        if off > 0 {
+//                            for i in 0..<off { s += String(t[i]) }
+//                            if precision > 0 {
+//                                s += "."
+//                                var i = off
+//                                for _ in 0..<precision { s += String(t[i]); i += 1 }
+//                            }
+//                        } else {
+//                            s += "0."
+//                            if off < 0 { s = s.padding(toLength: -off, withPad: "0", startingAt: s.count) }
+//                            for i in 0..<d { s += String(t[i]) }
+//                        }
+//                    } else {
+//                        s += String(t[0])
+//                        if precision > 0 { s += "." }
+//                        
+//                        for i in 1...precision {
+//                            s += String(t[i])
+//                        }
+//                    }
+//                }
+//            }
+//            
+//            // trap for improper offset with large values
+//            // without this trap, output of values of the for 10^j - 1 fail for j > 28
+//            // and are output with the point in the wrong place, leading to a dramatically off value
+//            if fixed && precision > 0 {
+//                // make sure that the value isn't dramatically larger
+//                var from_string = atof(s)
+//                
+//                // if this ratio is large, then we"ve got problems
+//                if fabs( from_string / self.x[0] ) > 3.0 {
+//                    
+//                    // loop on the string, find the point, move it up one
+//                    // don't act on the first character
+//                    for i in 1...s.count {
+//                        if s[i] == "." {
+//                            s[i] = s[i-1]
+//                            s[i-1] = "."
+//                            break
+//                        }
+//                    }
+//                    
+//                    from_string = atof(s)
+//                    // if this ratio is large, then the string has not been fixed
+//                    if fabs( from_string / self.x[0] ) > 3.0 {
+//                        Common.error("Re-rounding unsuccessful in large number fixed point trap.")
+//                    }
+//                }
+//            }
+//            
+//            if !fixed {
+//                /* Fill in exponent part */
+//                s += uppercase ? "E" : "e"
+//                QDouble.append_expn(&s, expn: e)
+//            }
+//        }
+//        
+//        /* Fill in the blanks */
+//        let len = s.count
+//        if len < width {
+//            if fmt.contains(.intern) {
+//                if sgn {
+//                    s = s.padding(toLength: width, withPad: fill, startingAt: 1)
+//                } else {
+//                    s = s.padding(toLength: width, withPad: fill, startingAt: 0)
+//                }
+//            } else if fmt.contains(.left) {
+//                s = s.padding(toLength: width, withPad: fill, startingAt: s.count)
+//            } else {
+//                s = s.padding(toLength: width, withPad: fill, startingAt: 0)
+//            }
+//        }
+//        
+//        return s
+//    }
     
     /** Computes x^n, where *n* is an integer. */
-    static public func pow (_ a: QDouble, _ n: Int) -> QDouble {
-        if n == 0 { return 1 }
-        
-        var r: QDouble = a        /* odd-case multiplier */
-        var s: QDouble = 1        /* current answer */
-        var N = Swift.abs(n)
-        
-        /* Use binary exponentiation. */
-        while N > 0 {
-            /* If odd, multiply by r */
-            if !N.isMultiple(of: 2) { s *= r }
-            N /= 2
-            if N > 0 { r = sqr(r) }
-        }
-        
-        return n < 0 ? 1.0 / s : s
-    }
+//    static public func pow (_ a: QDouble, _ n: Int) -> QDouble {
+//        if n == 0 { return 1 }
+//
+//        var r: QDouble = a        /* odd-case multiplier */
+//        var s: QDouble = 1        /* current answer */
+//        var N = Swift.abs(n)
+//
+//        /* Use binary exponentiation. */
+//        while N > 0 {
+//            /* If odd, multiply by r */
+//            if !N.isMultiple(of: 2) { s *= r }
+//            N /= 2
+//            if N > 0 { r = sqr(r) }
+//        }
+//
+//        return n < 0 ? 1.0 / s : s
+//    }
     
-    static func npwr(_ a : QDouble, _ n : Int) -> QDouble { pow(a, n) }
+//    static func npwr(_ a : QDouble, _ n : Int) -> QDouble { Common.pow(a, n) }
     static public func pow (_ a: QDouble, _ b: QDouble) -> QDouble { exp(b * log(a)) }
 
     /** Calculates the square root of *a* using
@@ -1246,7 +1250,7 @@ public struct QDouble {
         if a.isZero { return a }
         
         if a.isNegative {
-            error("(Quad.sqrt): Negative argument.")
+            Common.error("(Quad.sqrt): Negative argument.")
             return nan
         }
         
@@ -1272,12 +1276,12 @@ public struct QDouble {
     ///    we only need to perform it thrice.
     static public func nroot(_ a: QDouble, n: Int) -> QDouble {
         if n <= 0 {
-            error("(Quad.nroot): N must be positive.")
+            Common.error("(Quad.nroot): N must be positive.")
             return nan
         }
         
         if n.isMultiple(of: 2) && a.isNegative {
-            error("(Quad.nroot): Negative argument.")
+            Common.error("(Quad.nroot): Negative argument.")
             return nan
         }
         
@@ -1298,9 +1302,9 @@ public struct QDouble {
         
         /* Perform Newton's iteration. */
         let dbln = Double(n)
-        x += x * (1.0 - r * npwr(x, n)) / dbln
-        x += x * (1.0 - r * npwr(x, n)) / dbln
-        x += x * (1.0 - r * npwr(x, n)) / dbln
+        x += x * (1.0 - r * x ** n) / dbln
+        x += x * (1.0 - r * x ** n) / dbln
+        x += x * (1.0 - r * x ** n) / dbln
         if a[0] < 0.0 {
             x = -x
         }
@@ -1334,7 +1338,7 @@ public struct QDouble {
             p *= r
             t = p * inv_fact[i]; i += 1
             s += t
-        } while Swift.abs(double(t)) > thresh && i < 9
+        } while Swift.abs(t.double) > thresh && i < 9
         
         s = mul_pwr2(s, 2.0) + sqr(s)
         s = mul_pwr2(s, 2.0) + sqr(s)
@@ -1375,7 +1379,7 @@ public struct QDouble {
         if a.isOne { return zero }
         
         if a[0] <= 0.0 {
-            error("(Quad.log): Non-positive argument.")
+            Common.error("(Quad.log): Non-positive argument.")
             return nan
         }
         
@@ -1390,13 +1394,12 @@ public struct QDouble {
         return x
     }
     
-    /// Computes base 10 logarithm of *a*.
-    static public func log10(_ a: QDouble) -> QDouble { log(a) / Log10 }
+    public static func log10(_ a: QDouble) -> QDouble { log(a) / Log10 }
 
     /// Computes *sin(a)* and *cos(a)* using the Taylor series.
     /// - Precondition: Assumes |a| ≤ π/2048.
     static fileprivate func sincos_taylor(_ a: QDouble) -> (s: QDouble, c: QDouble) {
-        let thresh = 0.5 * eps * Swift.abs(double(a))
+        let thresh = 0.5 * eps * Swift.abs(a.double)
         let n_inv_fact = inv_fact.count
         var p, s, t, x: QDouble
         
@@ -1411,13 +1414,13 @@ public struct QDouble {
             t = p * inv_fact[i]
             s += t
             i += 2
-        } while i < n_inv_fact && Swift.abs(double(t)) > thresh
+        } while i < n_inv_fact && Swift.abs(t.double) > thresh
         
         return (s, sqrt(1.0 - sqr(s)))
     }
 
     static fileprivate func sin_taylor(_ a: QDouble) -> QDouble {
-        let thresh = 0.5 * eps * Swift.abs(double(a))
+        let thresh = 0.5 * eps * Swift.abs(a.double)
         let n_inv_fact = inv_fact.count
         var p, s, t, x: QDouble
         
@@ -1432,7 +1435,7 @@ public struct QDouble {
             t = p * inv_fact[i]
             s += t
             i += 2
-        } while i < n_inv_fact && Swift.abs(double(t)) > thresh
+        } while i < n_inv_fact && Swift.abs(t.double) > thresh
         
         return s
     }
@@ -1453,7 +1456,7 @@ public struct QDouble {
             t = p * inv_fact[i]
             s += t
             i += 2
-        } while i < n_inv_fact && Swift.abs(double(t)) > thresh
+        } while i < n_inv_fact && Swift.abs(t.double) > thresh
         
         return s
     }
@@ -1481,12 +1484,12 @@ public struct QDouble {
         let absk = Swift.abs(k)
         
         if j < -2 || j > 2 {
-            error("(Quad.sin): Cannot reduce modulo pi/2.")
+            Common.error("(Quad.sin): Cannot reduce modulo pi/2.")
             return nan
         }
         
         if absk > 256 {
-            error("(Quad.sin): Cannot reduce modulo pi/1024.")
+            Common.error("(Quad.sin): Cannot reduce modulo pi/1024.")
             return nan
         }
         
@@ -1539,12 +1542,12 @@ public struct QDouble {
         let absk = Swift.abs(k)
         
         if j < -2 || j > 2 {
-            error("(Quad.cos): Cannot reduce modulo pi/2.")
+            Common.error("(Quad.cos): Cannot reduce modulo pi/2.")
             return nan
         }
         
         if absk > 256 {
-            error("(Quad.cos): Cannot reduce modulo pi/1024.")
+            Common.error("(Quad.cos): Cannot reduce modulo pi/1024.")
             return nan
         }
         
@@ -1598,12 +1601,12 @@ public struct QDouble {
         let absk = Swift.abs(k)
         
         if Swift.abs(j) > 2 {
-            error("(Quad.sincos): Cannot reduce modulo pi/2.")
+            Common.error("(Quad.sincos): Cannot reduce modulo pi/2.")
             return (nan, nan)
         }
         
         if absk > 256 {
-            error("(Quad.sincos): Cannot reduce modulo pi/1024.")
+            Common.error("(Quad.sincos): Cannot reduce modulo pi/1024.")
             return (nan, nan)
         }
         
@@ -1669,7 +1672,7 @@ public struct QDouble {
         if x.isZero {
             if y.isZero {
                 /* Both x and y is zero. */
-                QDouble.error("(Quad.atan2): Both arguments zero.")
+                Common.error("(Quad.atan2): Both arguments zero.")
                 return nan
             }
             return y.isPositive ? pi2 : -pi2
@@ -1685,7 +1688,7 @@ public struct QDouble {
         let yy = y / r
         
         /* Compute Double precision approximation to atan. */
-        var z = QDouble(Foundation.atan2(double(y), double(x)))
+        var z = QDouble(Foundation.atan2(y.double, x.double))
         var sin_z, cos_z: QDouble
         
         if Swift.abs(xx[0]) > Swift.abs(yy[0]) {
@@ -1719,7 +1722,7 @@ public struct QDouble {
         let absa = abs(a)
         
         if absa > 1.0 {
-            QDouble.error("(Quad.asin): Argument out of domain.")
+            Common.error("(Quad.asin): Argument out of domain.")
             return nan
         }
         
@@ -1731,7 +1734,7 @@ public struct QDouble {
         let absa = abs(a)
         
         if absa > 1.0 {
-            QDouble.error("(Quad.acos): Argument out of domain.")
+            Common.error("(Quad.acos): Argument out of domain.")
             return nan
         }
         
@@ -1753,7 +1756,7 @@ public struct QDouble {
         var t = a
         let r = sqr(t)
         var m = 1.0
-        let thresh = Swift.abs(double(a) * eps)
+        let thresh = Swift.abs(a.double * eps)
         
         repeat {
             m += 2.0
@@ -1775,7 +1778,7 @@ public struct QDouble {
     static public func tanh(_ a: QDouble) -> QDouble {
         if a.isZero { return a }
         
-        if Swift.abs(double(a)) > 0.05 {
+        if Swift.abs(a.double) > 0.05 {
             let ea = exp(a)
             let inv_ea = inv(ea)
             return (ea - inv_ea) / (ea + inv_ea)
@@ -1787,7 +1790,7 @@ public struct QDouble {
     }
     
     static public func sincosh(_ a: QDouble) -> (s: QDouble, c: QDouble) {
-        if Swift.abs(double(a)) <= 0.05 {
+        if Swift.abs(a.double) <= 0.05 {
             let s = sinh(a)
             return (s, sqrt(1.0 + sqr(s)))
         } else {
@@ -1801,7 +1804,7 @@ public struct QDouble {
     
     static public func acosh(_ a: QDouble) -> QDouble {
         if a < 1.0 {
-            error("(Quad.acosh): Argument out of domain.")
+            Common.error("(Quad.acosh): Argument out of domain.")
             return nan
         }
         
@@ -1810,7 +1813,7 @@ public struct QDouble {
     
     static public func atanh(_ a: QDouble) -> QDouble {
         if abs(a) >= 1.0 {
-            error("(Quad.atanh): Argument out of domain.")
+            Common.error("(Quad.atanh): Argument out of domain.")
             return nan
         }
         
@@ -1860,14 +1863,14 @@ public struct QDouble {
         var d = [QDouble](repeating: 0, count: n)
         var conv = false
         
-        var max_c = Swift.abs(double(c[0]))
+        var max_c = Swift.abs(c[0].double)
         var v: Double
         
         if thresh.isZero { thresh = eps }
         
         /* Compute the coefficients of the derivatives. */
         for i in 1...n {
-            v = Swift.abs(double(c[i]))
+            v = Swift.abs(c[i].double)
             if v > max_c { max_c = v }
             d[i-1] = c[i] * Double(i)
         }
@@ -1885,7 +1888,7 @@ public struct QDouble {
         }
         
         if !conv {
-            error("(Quad.polyroot): Failed to converge.")
+            Common.error("(Quad.polyroot): Failed to converge.")
             return nan
         }
         
@@ -1894,14 +1897,14 @@ public struct QDouble {
     
     // MARK: - Object-based methods
     //
-    public func add (_ b: Double) -> QDouble { self + b }
-    public func add (_ b: QDouble) -> QDouble   { self + b }
-    public func sub (_ b: Double) -> QDouble { self - b }
-    public func sub (_ b: QDouble) -> QDouble   { self - b }
-    public func mul (_ b: Double) -> QDouble { self * b }
-    public func mul (_ b: QDouble) -> QDouble   { self * b }
-    public func div (_ b: Double) -> QDouble { self / b }
-    public func div (_ b: QDouble) -> QDouble   { self / b }
+    public func add (_ b: Double) -> QDouble  { self + b }
+    public func add (_ b: QDouble) -> QDouble { self + b }
+    public func sub (_ b: Double) -> QDouble  { self - b }
+    public func sub (_ b: QDouble) -> QDouble { self - b }
+    public func mul (_ b: Double) -> QDouble  { self * b }
+    public func mul (_ b: QDouble) -> QDouble { self * b }
+    public func div (_ b: Double) -> QDouble  { self / b }
+    public func div (_ b: QDouble) -> QDouble { self / b }
     
     public func sin () -> QDouble   { QDouble.sin(self) }
     public func cos () -> QDouble   { QDouble.cos(self) }
@@ -1926,14 +1929,14 @@ public struct QDouble {
     public func log () -> QDouble   { QDouble.log(self) }
     public func log10 () -> QDouble { QDouble.log10(self) }
     
-    public func double() -> Double { QDouble.double(self) }
-    public func int() -> Int       { QDouble.int(self) }
+ //   public func double() -> Double { QDouble.double(self) }
+ //   public func int() -> Int       { QDouble.int(self) }
     public func ceil() -> QDouble  { QDouble.ceil(self) }
     public func floor() -> QDouble { QDouble.floor(self) }
     public func trunc() -> QDouble { QDouble.trunc(self) }
     public var abs: QDouble        { QDouble.abs(self) }
     public func fmod(_ b:QDouble) -> QDouble { QDouble.fmod(self, b: b) }
-    public func inv() -> QDouble      { QDouble.inv(self) }
+    public func inv() -> QDouble   { QDouble.inv(self) }
     public func string() -> String { self.description }
     
     public func polyroot(_ c: [QDouble], n: Int) -> QDouble { QDouble.polyroot(c, n: n, x: self) }
@@ -2521,21 +2524,14 @@ extension QDouble {
     
     /********** Exponentiation **********/
 
-    static public func ** (base: QDouble, power: Int) -> QDouble  { QDouble.pow(base, power) }
+    static public func ** (base: QDouble, power: Int) -> QDouble  { Common.pow(base, power) }
     static public func ** (base: QDouble, power: QDouble) -> QDouble { QDouble.pow(base, power) }
 
     static public func abs(_ a: QDouble) -> QDouble { a[0] < 0.0 ? -a : a }
-    
 }
 
 extension QDouble : ExpressibleByStringLiteral {
-    
-    public typealias ExtendedGraphemeClusterLiteralType = StringLiteralType
-    public typealias UnicodeScalarLiteralType = Character
-    
     public init (stringLiteral s: String) { self.init(s) }
-    public init (extendedGraphemeClusterLiteral s: ExtendedGraphemeClusterLiteralType) { self.init(stringLiteral:s) }
-    public init (unicodeScalarLiteral s: UnicodeScalarLiteralType) { self.init(stringLiteral:"\(s)") }
 }
 
 extension QDouble : ExpressibleByFloatLiteral {
@@ -2547,13 +2543,21 @@ extension QDouble : ExpressibleByIntegerLiteral {
 }
 
 extension QDouble : CustomStringConvertible {
-    public var description: String { self.string(QDouble.ndigits) }
+    public var description: String { self.string(QDouble.digits)  }
 }
 
-extension QDouble : Comparable {
-//    static public func == (a: QDouble, b: QDouble) -> Bool { QDouble.equals(a, b: b) }
-//    static public func <  (a: QDouble, b: QDouble) -> Bool { QDouble.less(a, b: b) }
+extension QDouble : CustomDebugStringConvertible {
+    public var debugDescription: String {
+        var str = "[\n"
+        str += Common.doubleInfo(x.x) + ",\n"
+        str += Common.doubleInfo(x.y) + ",\n"
+        str += Common.doubleInfo(x.z) + ",\n"
+        str += Common.doubleInfo(x.w) + "\n]"
+        return str
+    }
 }
+
+extension QDouble : Comparable { }
 
 extension QDouble : SignedNumeric {
 
@@ -2564,7 +2568,6 @@ extension QDouble : SignedNumeric {
         guard source.bitWidth < mantissaWidth else { return nil }
         self.init(source)
     }
-    
 }
 
 extension QDouble : Hashable {
@@ -2587,8 +2590,8 @@ extension QDouble : FloatingPoint {
             case .toNearestOrAwayFromZero: self = QDouble.nint(self) // normal rounding
             case .toNearestOrEven: break;
             case .up: break;
-            case .towardZero: self = QDouble.aint(self)  // aka truncate
-            @unknown default: assertionFailure("DDouble: Unknown rounding rule \(rule)")
+            case .towardZero: self = QDouble.trunc(self)  // aka truncate
+            @unknown default: assertionFailure("QDouble: Unknown rounding rule \(rule)")
         }
     }
     
@@ -2619,7 +2622,7 @@ extension QDouble : FloatingPoint {
     
     public mutating func formTruncatingRemainder(dividingBy other: QDouble) {
         self.formRemainder(dividingBy: other)
-        self = QDouble.aint(self)
+        self = QDouble.trunc(self)
     }
     
     public mutating func formSquareRoot() { self = QDouble.sqrt(self) }

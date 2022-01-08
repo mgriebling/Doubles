@@ -1,5 +1,5 @@
     import XCTest
-    @testable import QuadReals
+    @testable import Doubles
 
     //
     //  Test.swift
@@ -13,6 +13,8 @@
         override func setUp() {
             super.setUp()
             // Put setup code here. This method is called before the invocation of each test method in the class.
+//            print("QDouble.pi = ", QDouble.pi.debugDescription)
+//            print("DDouble.pi = ", DDouble.pi.debugDescription)
         }
         
         override func tearDown() {
@@ -65,7 +67,7 @@
             
             p = QDouble.pi   /* p = pi */
             print("          _pi: \(p)")
-            print("        error: \(t2) = \(QDouble.double(t2 / QDouble.eps))) eps")
+            print("        error: \(t2) = \((t2 / QDouble.eps).double)) eps")
             XCTAssert(t2 < 64.0 * QDouble.eps, "Pass")
         }
         
@@ -92,10 +94,10 @@
                 p_old = p
                 p = 1.0 / a
                 print("Iteration \(i) : \(p)")
-                if (abs(QDouble.double(p - p_old)) < 16 * QDouble.eps) { break }
+                if (abs((p - p_old).double) < 16 * QDouble.eps) { break }
             }
             
-            let err = abs(QDouble.double(p - QDouble.pi))
+            let err = abs((p - QDouble.pi).double)
             XCTAssert(err < 64.0 * QDouble.eps, "Pass")
         }
         
@@ -111,7 +113,7 @@
             }
             
             var pass = true
-            let digits = QDouble.ndigits - 1
+            let digits = QDouble.digits - 1
             var x = QDouble.pi * "1.0e290"
             
             var pi_str = QDouble.pi.string(digits, width: 0, fmt: [.fixed])
@@ -148,7 +150,7 @@
             print("Root Found:  x  = \(x)")
             print("           p(x) = \(y)")
             
-            XCTAssert(QDouble.double(y) < 4.0 * QDouble.eps, "Pass")
+            XCTAssert(y.double < 4.0 * QDouble.eps, "Pass")
         }
         
         func testTaylorPi() {
@@ -209,7 +211,7 @@
             var p = 4.0 * s1 - s2;
             
             p *= 4.0;
-            err = abs(QDouble.double(p - QDouble.pi));
+            err = abs((p - QDouble.pi).double)
             XCTAssert(err < 8.0 * QDouble.eps, "Pass")
         }
         
@@ -235,7 +237,7 @@
                 s += t
             }
             
-            delta = abs(QDouble.double(s - QDouble.e))
+            delta = abs((s - QDouble.e).double)
             
             print("    e = \(s)")
             print("   _e = \(QDouble.e)")
@@ -266,7 +268,7 @@
                 s += t/n
             }
             
-            delta = abs(QDouble.double(s - QDouble.log2))
+            delta = abs((s - QDouble.log2).double)
             
             print("    log2 = \(s)")
             print("   _log2 = \(QDouble.log2)")
@@ -296,7 +298,7 @@
             
             let t1 = QDouble.exp(QDouble(2))
             let t2 = QDouble.sqr(QDouble.e)
-            let delta = max(abs(QDouble.double(t1 - p)), abs(QDouble.double(t2 - p)));
+            let delta = max(abs((t1 - p).double), abs((t2 - p).double))
             
             print("result = \(p)")
             print("exp(2) = \(t1)")
@@ -325,7 +327,7 @@
             let t1 = QDouble.sqrt(QDouble(3)) / 2.0
             let t2 = QDouble(0.5)
             
-            let delta = max(abs(QDouble.double(t1 - r1)), abs(QDouble.double(t2 - r2)));
+            let delta = max(abs((t1 - r1).double), abs((t2 - r2).double));
             
             print("  r1 = \(r1)")
             print("  t1 = \(t1)")
