@@ -1,12 +1,15 @@
-//
-//  DDouble.swift
-//  ExtendedFloat
-//
-//  Created by Mike Griebling on 2022-01-06.
-//
-
 import Foundation
 
+///  Translated to Swift from an original work called qd-2.3.15
+///  by Yozo Hida, Xiaoye S. Li, and David H. Bailey
+///  Bug fixes incorporated from qd-2.3.23 - MG - 24 Mar 2019.
+///
+///  Created by Mike Griebling on 30 Jun 2015.
+///  Copyright (c) 2015-2022 Computer Inspirations. All rights reserved.
+///
+/// (Original) work was supported by the Director, Office of Science, Division
+/// of Mathematical, Information, and Computational Sciences of the
+/// U.S. Department of Energy under contract number DE-AC03-76SF00098.
 public struct DDouble {
     
     /// Storage for double-precision data type
