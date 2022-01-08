@@ -83,7 +83,7 @@
             m = 2.0
             
             p = 1.0 / a
-            print("Iteration 0: \(p)")
+            print("Iteration 0 : \(p)")
             
             for i in 1...max_iter {
                 m *= 4.0
@@ -360,7 +360,7 @@
         }
         
         func addition() {
-            let n = 10000
+            let n = 100_000
             
             let a1 = 1.0 / QDouble(7.0)
             let a2 = 1.0 / QDouble(11.0)
@@ -380,7 +380,7 @@
         }
         
         func multiplication() {
-            let n = 10000
+            let n = 100_000
             
             let a1 = 1.0 + 1.0 / QDouble(n)
             let a2 = 1.0 + 2.0 / QDouble(n)
@@ -400,7 +400,7 @@
         }
         
         func division() {
-            let n = 10000
+            let n = 100_000
             
             let a1 = 1.0 + 1.0 / QDouble(n)
             let a2 = 1.0 + 2.0 / QDouble(n)
@@ -420,7 +420,7 @@
         }
         
         func root() {
-            let n = 1000
+            let n = 10_000
             
             let a1 = 1.0 + QDouble.pi
             let a2 = 2.0 + QDouble.pi
@@ -440,7 +440,7 @@
         }
         
         func sine() {
-            let n = 400
+            let n = 4_000
             
             var a = QDouble(0)
             let b = 3.0 * QDouble.pi / Double(n)
@@ -456,7 +456,7 @@
         }
         
         func cosine() {
-            let n = 400
+            let n = 4_000
             
             var a = QDouble(0)
             let b = 3.0 * QDouble.pi / Double(n)
@@ -472,7 +472,7 @@
         }
         
         func log() {
-            let n = 100
+            let n = 1_000
             
             var a = QDouble(0)
             let d = QDouble.exp(100.2 / Double(n))
@@ -488,7 +488,7 @@
         }
         
         func dot() {
-            let n = 10000
+            let n = 100_000
             
             let a1 = 1.0 / QDouble(7.0);
             let a2 = 1.0 / QDouble(11.0);
@@ -508,11 +508,11 @@
                 x4 = a4 + b4 * x4
             }
             let t = toc(tv)
-            print("   dot: ", terminator: ""); print_timing(4.0*Double(n), t: t)
+            print("   dot: ", terminator: ""); print_timing(8.0*Double(n), t: t)
         }
         
         func exp() {
-            let n = 100
+            let n = 1_000
             
             var a = QDouble(0)
             let d = QDouble(10.0 / Double(n))
