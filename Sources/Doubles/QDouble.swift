@@ -135,74 +135,64 @@ public struct QDouble {
     
     /*********** Basic Functions ************/
     /** Computes fl(a+b) and err(a+b).  Assumes |a| >= |b|. */
-    private static func quick_two_sum(_ a: Double, _ b: Double, _ err: inout Double) -> Double {
+    private static func quick_two_sum(_ a: Double, _ b: Double) -> (res: Double, err: Double) {
         let s = a + b
-        err = b - (s - a)
-        return s
+        return (s, b - (s - a))
     }
     
     /** Computes fl(a-b) and err(a-b).  Assumes |a| >= |b| */
-    private static func quick_two_diff(_ a: Double, _ b: Double, _ err: inout Double) -> Double {
+    private static func quick_two_diff(_ a: Double, _ b: Double) -> (res:Double, err:Double) {
         let s = a - b
-        err = (a - s) - b
-        return s
+        return (s, (a - s) - b)
     }
     
     /** Computes fl(a+b) and err(a+b).  */
-    private static func two_sum(_ a: Double, _ b: Double, _ err: inout Double) -> Double {
+    private static func two_sum(_ a: Double, _ b: Double) -> (res:Double, err:Double) {
         let s = a + b
         let bb = s - a
-        err = (a - (s - bb)) + (b - bb)
-        return s
+        return (s, (a - (s - bb)) + (b - bb))
     }
     
     /** Computes fl(a-b) and err(a-b).  */
-    private static func two_diff(_ a: Double, _ b: Double, _ err: inout Double) -> Double {
+    private static func two_diff(_ a: Double, _ b: Double) -> (res:Double, err:Double) {
         let s = a - b
         let bb = s - a
-        err = (a - (s - bb)) - (b + bb)
-        return s
+        return (s, (a - (s - bb)) - (b + bb))
     }
     
     /** Computes high word and lo word of a */
-    private static func split(_ a: Double, _ hi: inout Double, _ lo: inout Double) {
-        var a = a
+    private static func split(_ a: Double) -> (hi: Double, lo: Double) {
         let SPLITTER = 134217729.0               // = 2^27 + 1
         let SPLIT_THRESH = 6.69692879491417e+299 // = 2^996
         let two28 = 268435456.0                     // 2^28
         let invTwo28 = 1.0/two28                 // 2^-28
-        var temp: Double
         if Swift.abs(a) > SPLIT_THRESH {
+            var a = a
             a *= invTwo28
-            temp = SPLITTER * a
-            hi = temp - (temp - a)
-            lo = a - hi
-            hi *= two28
-            lo *= two28
+            let temp = SPLITTER * a
+            let hi = temp - (temp - a)
+            let lo = a - hi
+            return (hi*two28, lo*two28)
         } else {
-            temp = SPLITTER * a
-            hi = temp - (temp - a)
-            lo = a - hi
+            let temp = SPLITTER * a
+            let hi = temp - (temp - a)
+            return (hi, a - hi)
         }
     }
     
     /** Computes fl(a*b) and err(a*b). */
-    private static func two_prod(_ a: Double, _ b: Double, _ err: inout Double) -> Double {
-        var a_hi = 0.0; var a_lo = 0.0; var b_hi = 0.0; var b_lo = 0.0
+    private static func two_prod(_ a: Double, _ b: Double) -> (res:Double, err:Double) {
         let p = a * b
-        split(a, &a_hi, &a_lo)
-        split(b, &b_hi, &b_lo)
-        err = ((a_hi * b_hi - p) + a_hi * b_lo + a_lo * b_hi) + a_lo * b_lo
-        return p
+        let (a_hi, a_lo) = split(a)
+        let (b_hi, b_lo) = split(b)
+        return (p, ((a_hi * b_hi - p) + a_hi * b_lo + a_lo * b_hi) + a_lo * b_lo)
     }
     
     /** Computes fl(a*a) and err(a*a).  Faster than the above method. */
-    private static func two_sqr(_ a: Double, _ err: inout Double) -> Double {
-        var hi = 0.0; var lo = 0.0
+    private static func two_sqr(_ a: Double) -> (res:Double, err:Double) {
         let q = a * a
-        split(a, &hi, &lo)
-        err = ((hi * hi - q) + 2.0 * hi * lo) + lo * lo
-        return q
+        let (hi, lo) = split(a)
+        return (q, ((hi * hi - q) + 2.0 * hi * lo) + lo * lo)
     }
     
     /** Computes the nearest integer to d. */
@@ -211,97 +201,92 @@ public struct QDouble {
     
     /********** Renormalization **********/
     fileprivate static func quick_renorm(_ c0: inout Double, _ c1: inout Double, _ c2: inout Double, _ c3: inout Double, _ c4: inout Double) {
-        var t0 = 0.0, t1 = 0.0, t2 = 0.0, t3 = 0.0
-        var s = quick_two_sum(c3, c4, &t3)
-        s  = quick_two_sum(c2, s,  &t2)
-        s  = quick_two_sum(c1, s,  &t1)
-        c0 = quick_two_sum(c0, s,  &t0)
+        let (s, t3) = quick_two_sum(c3, c4)
+        var t2 = quick_two_sum(c2, s)
+        var t1 = quick_two_sum(c1, t2.res)
+        var t0 = quick_two_sum(c0, t1.res); c0 = t0.res
         
-        s  = quick_two_sum(t2, t3, &t2)
-        s  = quick_two_sum(t1, s,  &t1)
-        c1 = quick_two_sum(t0, s,  &t0)
+        t2 = quick_two_sum(t2.err, t3)
+        t1 = quick_two_sum(t1.err, t2.res)
+        t0 = quick_two_sum(t0.err, t1.res); c1 = t0.res
         
-        s  = quick_two_sum(t1, t2, &t1)
-        c2 = quick_two_sum(t0, s,  &t0)
+        t1 = quick_two_sum(t1.err, t2.err)
+        t0 = quick_two_sum(t0.err, t1.res); c2 = t0.res
         
-        c3 = t0 + t1
+        c3 = t0.err + t1.res
     }
     
     fileprivate static func renorm(_ c0: inout Double, _ c1: inout Double, _ c2: inout Double, _ c3: inout Double) {
-        var s2 = 0.0, s3 = 0.0
-        
         if c0.isInfinite { return }
+        var s0,s2,s3:Double
         
-        var s0 = quick_two_sum(c2, c3, &c3)
-        s0 = quick_two_sum(c1, s0, &c2)
-        c0 = quick_two_sum(c0, s0, &c1)
+        (s0, c3) = quick_two_sum(c2, c3)
+        (s0, c2) = quick_two_sum(c1, s0)
+        (c0, c1) = quick_two_sum(c0, s0)
         
-        s0 = c0
+        s0 = c0; s2 = 0; s3 = 0
         var s1 = c1
         if !s1.isZero {
-            s1 = quick_two_sum(s1, c2, &s2)
+            (s1,s2) = quick_two_sum(s1, c2)
             if !s2.isZero {
-                s2 = quick_two_sum(s2, c3, &s3)
+                (s2, s3) = quick_two_sum(s2, c3)
             } else {
-                s1 = quick_two_sum(s1, c3, &s2)
+                (s1, s2) = quick_two_sum(s1, c3)
             }
         } else {
-            s0 = quick_two_sum(s0, c2, &s1)
+            (s0, s1) = quick_two_sum(s0, c2)
             if !s1.isZero {
-                s1 = quick_two_sum(s1, c3, &s2)
+                (s1, s2) = quick_two_sum(s1, c3)
             } else {
-                s0 = quick_two_sum(s0, c3, &s1)
+                (s0, s1) = quick_two_sum(s0, c3)
             }
         }
-        
         c0 = s0; c1 = s1; c2 = s2; c3 = s3
     }
     
     fileprivate static func renorm(_ c0: inout Double, _ c1: inout Double, _ c2: inout Double, _ c3: inout Double, _ c4: inout Double) {
-        var s0, s1: Double; var s2 = 0.0, s3 = 0.0
-        
         if c0.isInfinite { return }
         
-        s0 = quick_two_sum(c3, c4, &c4)
-        s0 = quick_two_sum(c2, s0, &c3)
-        s0 = quick_two_sum(c1, s0, &c2)
-        c0 = quick_two_sum(c0, s0, &c1)
+        var s0, s2, s3:Double
+        (s0, c4) = quick_two_sum(c3, c4)
+        (s0, c3) = quick_two_sum(c2, s0)
+        (s0, c2) = quick_two_sum(c1, s0)
+        (c0, c1) = quick_two_sum(c0, s0)
         
-        s0 = c0
-        s1 = c1
-        
+        s0 = c0; s2 = 0; s3 = 0
+        var s1 = c1
         if !s1.isZero {
-            s1 = quick_two_sum(s1, c2, &s2)
+            (s1, s2) = quick_two_sum(s1, c2)
             if !s2.isZero {
-                s2 = quick_two_sum(s2, c3, &s3)
+                (s2, s3) = quick_two_sum(s2, c3)
                 if !s3.isZero {
                     s3 += c4
                 } else {
-                    s2 = quick_two_sum(s2, c4, &s3)
+                    (s2, s3) = quick_two_sum(s2, c4)
                 }
             } else {
-                s1 = quick_two_sum(s1, c3, &s2)
+                (s1, s2) = quick_two_sum(s1, c3)
                 if !s2.isZero {
-                    s2 = quick_two_sum(s2, c4, &s3)
+                    (s2, s3) = quick_two_sum(s2, c4)
                 } else {
-                    s1 = quick_two_sum(s1, c4, &s2)
+                    (s1, s2) = quick_two_sum(s1, c4)
                 }
             }
         } else {
-            s0 = quick_two_sum(s0, c2, &s1)
+            (s0, s1) = quick_two_sum(s0, c2)
             if !s1.isZero {
-                s1 = quick_two_sum(s1, c3, &s2)
+                (s1, s2) = quick_two_sum(s1, c3)
                 if !s2.isZero {
-                    s2 = quick_two_sum(s2, c4, &s3)
+                    (s2, s3) = quick_two_sum(s2, c4)
                 } else {
-                    s1 = quick_two_sum(s1, c4, &s2)
+                    (s1, s2) = quick_two_sum(s1, c4)
                 }
             } else {
-                s0 = quick_two_sum(s0, c3, &s1)
+                (s0, s1) = quick_two_sum(s0, c3)
                 if !s1.isZero {
-                    s1 = quick_two_sum(s1, c4, &s2)
+                    (s1, s2) = quick_two_sum(s1, c4)
                 } else {
-                    s0 = quick_two_sum(s0, c4, &s1)
+                    (s0, s1) = quick_two_sum(s0, c4)
                 }
             }
         }
@@ -315,52 +300,52 @@ public struct QDouble {
     }
     
     mutating fileprivate func renorm(_ e: inout Double) {
-        var a = x[0]; var b = x[1]; var c = x[2]
-        QDouble.renorm(&a, &b, &c, &x[3], &e)
-        x[0] = a; x[1] = b; x[2] = c
+        var a = x.x; var b = x.y; var c = x.z
+        QDouble.renorm(&a, &b, &c, &x.w, &e)
+        x.x = a; x.y = b; x.z = c
     }
     
     /********** Additions ************/
 
     fileprivate static func three_sum(_ a: inout Double, _ b: inout Double, _ c: inout Double) {
-        let t1 : Double; var t2 = 0.0, t3 = 0.0
-        t1 = two_sum(a, b, &t2)
-        a  = two_sum(c, t1, &t3)
-        b  = two_sum(t2, t3, &c)
+        let t1 : Double; var t2, t3:Double
+        (t1,t2) = two_sum(a, b)
+        (a, t3) = two_sum(c, t1)
+        (b, c)  = two_sum(t2, t3)
     }
     
     fileprivate static func three_sum2(_ a: inout Double, _ b: inout Double, _ c: inout Double) {
-        let t1 : Double; var t2 = 0.0, t3 = 0.0
-        t1 = two_sum(a, b, &t2)
-        a  = two_sum(c, t1, &t3)
+        let t1 : Double; var t2, t3:Double
+        (t1,t2) = two_sum(a, b)
+        (a, t3) = two_sum(c, t1)
         b = t2 + t3
     }
 
     /* quad-Double + Double */
     static public func + (_ a: QDouble, _ b: Double) -> QDouble {
-        var e = 0.0
+        var c0,c1,c2,c3,e: Double
         
-        var c0 = two_sum(a.x[0], b, &e)
-        var c1 = two_sum(a.x[1], e, &e)
-        var c2 = two_sum(a.x[2], e, &e)
-        var c3 = two_sum(a.x[3], e, &e)
+        (c0, e) = two_sum(a.x[0], b)
+        (c1, e) = two_sum(a.x[1], e)
+        (c2, e) = two_sum(a.x[2], e)
+        (c3, e) = two_sum(a.x[3], e)
         
         renorm(&c0, &c1, &c2, &c3, &e)
         return QDouble(c0, c1, c2, c3)
     }
     
     static public func + (_ a: QDouble, _ b: DDouble) -> QDouble {
-        var t0 = 0.0, t1 = 0.0
+        var s0,s1,s3,t0,t1:Double
         
-        var s0 = two_sum(a.x[0], b.hi, &t0)
-        var s1 = two_sum(a.x[1], b.lo, &t1)
+        (s0, t0) = two_sum(a.x[0], b.hi)
+        (s1, t1) = two_sum(a.x[1], b.lo)
         
-        s1 = two_sum(s1, t0, &t0)
+        (s1, t0) = two_sum(s1, t0)
         
         var s2 = a.x[2];
         three_sum(&s2, &t0, &t1)
         
-        var s3 = two_sum(t0, a.x[3], &t0)
+        (s3, t0) = two_sum(t0, a.x[3])
         t0 += t1
         
         renorm(&s0, &s1, &s2, &s3, &t0)
@@ -375,8 +360,9 @@ public struct QDouble {
      * output into s and (a,b) contains the remainder.  Otherwise
      * s is zero and (a,b) contains the sum. */
     fileprivate static func quick_three_accum(_ a: inout Double, _ b: inout Double, _ c: Double) -> Double {
-        var s = two_sum(b, c, &b)
-        s = two_sum(a, s, &a)
+        var s:Double
+        (s, b) = two_sum(b, c)
+        (s, a) = two_sum(a, s)
         
         let za = !a.isZero
         let zb = !b.isZero
@@ -391,13 +377,12 @@ public struct QDouble {
     
     /********** Accessors **********/
     fileprivate subscript (n: Int) -> Double {
-        get { return x[n] }
+        get { x[n] }
         set { x[n] = newValue }
     }
     
     fileprivate static func ieee_add(_ a: QDouble, _ b: QDouble) -> QDouble {
         var i = 0, j = 0, k = 0
- //       let a = a.x, b = b.x
         var u,v:Double
         var x = SIMD4<Double>.zero
         
@@ -406,7 +391,7 @@ public struct QDouble {
         if Swift.abs(a[i]) > Swift.abs(b[j]) { v = a[i]; i += 1 }
         else { v = b[j]; j += 1 }
         
-        u = quick_two_sum(u, v, &v)
+        (u, v) = quick_two_sum(u, v)
         
         while k < 4 {
             if i >= 4 && j >= 4 {
@@ -473,7 +458,7 @@ public struct QDouble {
         u = b.x - v
         t = w + u
         
-        s[1] = two_sum(s[1], t[0], &t[0])
+        (s[1],t[0]) = two_sum(s[1], t[0])
         var x = t[0]
         three_sum(&s[2], &x, &t[1])
         three_sum2(&s[3], &x, &t[2]); t[0] = x
@@ -497,17 +482,16 @@ public struct QDouble {
         var p0, p1, p2, p3: Double
         var q0, q1, q2: Double
         var s0, s1, s2, s3, s4: Double
-//        let a = a.x
         
         q0 = 0; q1 = 0; q2 = 0
-        p0 = two_prod(a[0], b, &q0)
-        p1 = two_prod(a[1], b, &q1)
-        p2 = two_prod(a[2], b, &q2)
+        (p0, q0) = two_prod(a[0], b)
+        (p1, q1) = two_prod(a[1], b)
+        (p2, q2) = two_prod(a[2], b)
         p3 = a[3] * b
         
         s0 = p0
         s2 = 0
-        s1 = two_sum(q0, p1, &s2)
+        (s1, s2) = two_sum(q0, p1)
         three_sum(&s2, &q1, &p2)
         three_sum2(&q1, &q2, &p3)
         s3 = q1
@@ -530,17 +514,12 @@ public struct QDouble {
                        a2 * b1     8
                        a3 * b0     9  */
     fileprivate static func sloppy_mul(_ a: QDouble, _ b: QDouble) -> QDouble {
-//        let a = a.x, b = b.x
-        
-        var q0=0.0, q1=0.0, q2=0.0, q3=0.0, q4=0.0, q5=0.0
-        var p0 = two_prod(a[0], b[0], &q0)
-        
-        var p1 = two_prod(a[0], b[1], &q1)
-        var p2 = two_prod(a[1], b[0], &q2)
-        
-        var p3 = two_prod(a[0], b[2], &q3)
-        var p4 = two_prod(a[1], b[1], &q4)
-        var p5 = two_prod(a[2], b[0], &q5)
+        var (p0, q0) = two_prod(a[0], b[0])
+        var (p1, q1) = two_prod(a[0], b[1])
+        var (p2, q2) = two_prod(a[1], b[0])
+        var (p3, q3) = two_prod(a[0], b[2])
+        var (p4, q4) = two_prod(a[1], b[1])
+        var (p5, q5) = two_prod(a[2], b[0])
         
         /* Start Accumulation */
         three_sum(&p1, &p2, &q0)
@@ -549,11 +528,10 @@ public struct QDouble {
         three_sum(&p2, &q1, &q2)
         three_sum(&p3, &p4, &p5)
         /* compute (s0, s1, s2) = (p2, q1, q2) + (p3, p4, p5). */
-        var t0=0.0, t1=0.0
-        var s0 = two_sum(p2, p3, &t0)
-        var s1 = two_sum(q1, p4, &t1)
+        var (s0, t0) = two_sum(p2, p3)
+        var (s1, t1) = two_sum(q1, p4)
         var s2 = q2 + p5
-        s1 = two_sum(s1, t0, &t0)
+        (s1, t0) = two_sum(s1, t0)
         s2 += (t0 + t1)
         
         /* O(eps^3) order terms */
@@ -563,17 +541,12 @@ public struct QDouble {
     }
     
     static func accurate_mul(_ a: QDouble, _ b: QDouble) -> QDouble {
-//        let a = a.x, b = b.x
-        
-        var q0=0.0, q1=0.0, q2=0.0, q3=0.0, q4=0.0, q5=0.0
-        var p0 = two_prod(a[0], b[0], &q0)
-        
-        var p1 = two_prod(a[0], b[1], &q1)
-        var p2 = two_prod(a[1], b[0], &q2)
-        
-        var p3 = two_prod(a[0], b[2], &q3)
-        var p4 = two_prod(a[1], b[1], &q4)
-        var p5 = two_prod(a[2], b[0], &q5)
+        var (p0, q0) = two_prod(a[0], b[0])
+        var (p1, q1) = two_prod(a[0], b[1])
+        var (p2, q2) = two_prod(a[1], b[0])
+        var (p3, q3) = two_prod(a[0], b[2])
+        var (p4, q4) = two_prod(a[1], b[1])
+        var (p5, q5) = two_prod(a[2], b[0])
         
         /* Start Accumulation */
         three_sum(&p1, &p2, &q0)
@@ -582,37 +555,34 @@ public struct QDouble {
         three_sum(&p2, &q1, &q2)
         three_sum(&p3, &p4, &p5)
         /* compute (s0, s1, s2) = (p2, q1, q2) + (p3, p4, p5). */
-        var t0=0.0, t1=0.0
-        var s0 = two_sum(p2, p3, &t0)
-        var s1 = two_sum(q1, p4, &t1)
+        var (s0, t0) = two_sum(p2, p3)
+        var (s1, t1) = two_sum(q1, p4)
         var s2 = q2 + p5
-        s1 = two_sum(s1, t0, &t0)
+        (s1, t0) = two_sum(s1, t0)
         s2 += (t0 + t1)
         
         /* O(eps^3) order terms */
-        var q6=0.0, q7=0.0, q8=0.0, q9=0.0
-        var p6 = two_prod(a[0], b[3], &q6)
-        var p7 = two_prod(a[1], b[2], &q7)
-        var p8 = two_prod(a[2], b[1], &q8)
-        var p9 = two_prod(a[3], b[0], &q9)
+        var (p6, q6) = two_prod(a[0], b[3])
+        var (p7, q7) = two_prod(a[1], b[2])
+        var (p8, q8) = two_prod(a[2], b[1])
+        var (p9, q9) = two_prod(a[3], b[0])
         
         /* Nine-Two-Sum of q0, s1, q3, q4, q5, p6, p7, p8, p9. */
-        q0 = two_sum(q0, q3, &q3)
-        q4 = two_sum(q4, q5, &q5)
-        p6 = two_sum(p6, p7, &p7)
-        p8 = two_sum(p8, p9, &p9)
+        (q0, q3) = two_sum(q0, q3)
+        (q4, q5) = two_sum(q4, q5)
+        (p6, p7) = two_sum(p6, p7)
+        (p8, p9) = two_sum(p8, p9)
         /* Compute (t0, t1) = (q0, q3) + (q4, q5). */
-        t0 = two_sum(q0, q4, &t1)
+        (t0, t1) = two_sum(q0, q4)
         t1 += (q3 + q5)
         /* Compute (r0, r1) = (p6, p7) + (p8, p9). */
-        var r1=0.0
-        let r0 = two_sum(p6, p8, &r1)
+        var (r0, r1) = two_sum(p6, p8)
         r1 += (p7 + p9)
         /* Compute (q3, q4) = (t0, t1) + (r0, r1). */
-        q3 = two_sum(t0, r0, &q4)
+        (q3, q4) = two_sum(t0, r0)
         q4 += (t1 + r1)
         /* Compute (t0, t1) = (q3, q4) + s1. */
-        t0 = two_sum(q3, s1, &t1)
+        (t0, t1) = two_sum(q3, s1)
         t1 += q4
         
         /* O(eps^4) terms -- Nine-One-Sum */
@@ -624,44 +594,40 @@ public struct QDouble {
     
     static public func mul(_ a: QDouble, _ b: QDouble) -> QDouble { SLOPPY_MUL ? sloppy_mul(a, b) : accurate_mul(a, b) }
     
-    /** x² = (x₀ + x₁ + x₂ + x₃)²
-           = x₀² + 2x₀ * x₁ + (2x₀ * x₂ + x₁²)
-                           + (2x₀ * x₃ + 2x₁ * x₂)           */
+    /// Square the quad-double number *a* where x = a.
+    /// x² = (x₀ + x₁ + x₂ + x₃)²
+    ///    = x₀² + 2x₀ ∙ x₁ + (2x₀ ∙ x₂ + x₁²) + (2x₀ ∙ x₃ + 2x₁ ∙ x₂)
     static public func sqr(_ a: QDouble) -> QDouble {
-//        let a = a.x
+        var (p0, q0) = two_sqr(a[0])
+        var (p1, q1) = two_prod(2.0 * a[0], a[1])
+        var (p2, q2) = two_prod(2.0 * a[0], a[2])
+        var (p3, q3) = two_sqr(a[1])
         
-        var q0 = 0.0, q1 = 0.0, q2 = 0.0, q3 = 0.0
-        var p0 = two_sqr(a[0], &q0)
-        var p1 = two_prod(2.0 * a[0], a[1], &q1)
-        var p2 = two_prod(2.0 * a[0], a[2], &q2)
-        var p3 = two_sqr(a[1], &q3)
+        (p1, q0) = two_sum(q0, p1)
         
-        p1 = two_sum(q0, p1, &q0)
+        (q0, q1) = two_sum(q0, q1)
+        (p2, p3) = two_sum(p2, p3)
         
-        q0 = two_sum(q0, q1, &q1)
-        p2 = two_sum(p2, p3, &p3)
+        var (s0, t0) = two_sum(q0, p2)
+        var (s1, t1) = two_sum(q1, p3)
         
-        var t0 = 0.0, t1 = 0.0
-        let s0 = two_sum(q0, p2, &t0)
-        var s1 = two_sum(q1, p3, &t1)
-        
-        s1 = two_sum(s1, t0, &t0)
+        (s1, t0) = two_sum(s1, t0)
         t0 += t1
         
-        s1 = quick_two_sum(s1, t0, &t0)
-        p2 = quick_two_sum(s0, s1, &t1)
-        p3 = quick_two_sum(t1, t0, &q0)
+        (s1, t0) = quick_two_sum(s1, t0)
+        (p2, t1) = quick_two_sum(s0, s1)
+        (p3, q0) = quick_two_sum(t1, t0)
         
         var p4 = 2.0 * a[0] * a[3]
         var p5 = 2.0 * a[1] * a[2]
         
-        p4 = two_sum(p4, p5, &p5)
-        q2 = two_sum(q2, q3, &q3)
+        (p4, p5) = two_sum(p4, p5)
+        (q2, q3) = two_sum(q2, q3)
         
-        t0 = two_sum(p4, q2, &t1)
+        (t0, t1) = two_sum(p4, q2)
         t1 = t1 + p5 + q3
         
-        p3 = two_sum(p3, t0, &p4)
+        (p3, p4) = two_sum(p3, t0)
         p4 = p4 + q0 + t1
         
         renorm(&p0, &p1, &p2, &p3, &p4)
@@ -807,18 +773,17 @@ public struct QDouble {
         var q0 = a[0] / b  /* approximate quotient */
         
         /* Compute the remainder  a - q0 * b */
-        var t1 = 0.0
-        var t0 = two_prod(q0, b, &t1)
+        var (t0, t1) = two_prod(q0, b)
         var r = a - QDouble(t0, t1)
         
         /* Compute the first correction */
         var q1 = r[0] / b
-        t0 = two_prod(q1, b, &t1)
+        (t0, t1) = two_prod(q1, b)
         r -= QDouble(t0, t1)
         
         /* Second correction to the quotient. */
         var q2 = r[0] / b
-        t0 = two_prod(q2, b, &t1)
+        (t0, t1) = two_prod(q2, b)
         r -= QDouble(t0, t1)
         
         /* Final correction to the quotient. */
