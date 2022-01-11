@@ -270,7 +270,7 @@ struct Common {
                 s += "0"
                 if precision > 0 {
                     s += "."
-                    s = s.padding(toLength: precision, withPad: "0", startingAt: s.count)
+                    s += "".padding(toLength: precision-s.count, withPad: "0", startingAt: 0)
                 }
             } else {
                 /* Non-zero case */
