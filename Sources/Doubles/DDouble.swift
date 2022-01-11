@@ -13,7 +13,7 @@ import Foundation
 public struct DDouble {
     
     /// Storage for double-precision data type
-    private(set) var x : SIMD2<Double>
+    public var x : SIMD2<Double>
     
     private static let IEEE_ADD = false     // set to true for slower IEEE-compliant adds
     private static let SLOPPY_DIV = true    // set to false for an accurate division
@@ -36,8 +36,8 @@ public struct DDouble {
     }
     
     /// Access functions
-    var hi: Double { x.x }
-    var lo: Double { x.y }
+    public var hi: Double { x.x }
+    public var lo: Double { x.y }
     
     /*********** Micellaneous ************/
     public var isZero:Bool      { x[0].isZero }

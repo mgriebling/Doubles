@@ -77,12 +77,12 @@ public struct QDouble {
     //
     // number storage
     //
-    private(set) var x : SIMD4<Double>        // gives a bit better performance than [Double]
+    public var x : SIMD4<Double>        // gives a bit better performance than [Double]
 
     //
     // Initialization routines
     //
-    public init () { x = SIMD4.zero }
+    @inlinable public init () { x = SIMD4.zero }
     
     public init<T>(_ source: T) where T : BinaryInteger {
         var a = QDouble()
@@ -100,7 +100,7 @@ public struct QDouble {
         self.init(a.x)
     }
     
-    init (_ d4: SIMD4<Double>) { x = d4 }
+    @inlinable init (_ d4: SIMD4<Double>) { x = d4 }
     
     public init (_ s: String) {
         if let q : QDouble = Common.toFloat(s) {
@@ -111,8 +111,8 @@ public struct QDouble {
         }
     }
     
-    public init (_ d:Double) { x = SIMD4(d, 0, 0, 0) }
-    public init (_ a:DDouble) { x = SIMD4(lowHalf: a.x, highHalf: SIMD2.zero) }
+    @inlinable public init (_ d:Double) { x = SIMD4(d, 0, 0, 0) }
+    @inlinable public init (_ a:DDouble) { x = SIMD4(lowHalf: a.x, highHalf: SIMD2.zero) }
     
     public init (_ d: Double...) {
         self.init()
@@ -129,39 +129,39 @@ public struct QDouble {
     // Utility routines
     //
     
-    public var isNaN: Bool      { x[0].isNaN || x[1].isNaN  || x[2].isNaN  || x[3].isNaN  }
-    public var isFinite: Bool   { x[0].isFinite }
-    public var isInfinite: Bool { x[0].isInfinite }
+    @inlinable public var isNaN: Bool      { x[0].isNaN || x[1].isNaN  || x[2].isNaN  || x[3].isNaN  }
+    @inlinable public var isFinite: Bool   { x[0].isFinite }
+    @inlinable public var isInfinite: Bool { x[0].isInfinite }
     
     /*********** Basic Functions ************/
     /** Computes fl(a+b) and err(a+b).  Assumes |a| >= |b|. */
-    private static func quick_two_sum(_ a: Double, _ b: Double) -> (res: Double, err: Double) {
+    @inlinable static func quick_two_sum(_ a: Double, _ b: Double) -> (res: Double, err: Double) {
         let s = a + b
         return (s, b - (s - a))
     }
     
     /** Computes fl(a-b) and err(a-b).  Assumes |a| >= |b| */
-    private static func quick_two_diff(_ a: Double, _ b: Double) -> (res:Double, err:Double) {
+    @inlinable static func quick_two_diff(_ a: Double, _ b: Double) -> (res:Double, err:Double) {
         let s = a - b
         return (s, (a - s) - b)
     }
     
     /** Computes fl(a+b) and err(a+b).  */
-    private static func two_sum(_ a: Double, _ b: Double) -> (res:Double, err:Double) {
+    @inlinable static func two_sum(_ a: Double, _ b: Double) -> (res:Double, err:Double) {
         let s = a + b
         let bb = s - a
         return (s, (a - (s - bb)) + (b - bb))
     }
     
     /** Computes fl(a-b) and err(a-b).  */
-    private static func two_diff(_ a: Double, _ b: Double) -> (res:Double, err:Double) {
+    @inlinable static func two_diff(_ a: Double, _ b: Double) -> (res:Double, err:Double) {
         let s = a - b
         let bb = s - a
         return (s, (a - (s - bb)) - (b + bb))
     }
     
     /** Computes high word and lo word of a */
-    private static func split(_ a: Double) -> (hi: Double, lo: Double) {
+    @inlinable static func split(_ a: Double) -> (hi: Double, lo: Double) {
         let SPLITTER = 134217729.0               // = 2^27 + 1
         let SPLIT_THRESH = 6.69692879491417e+299 // = 2^996
         let two28 = 268435456.0                     // 2^28
@@ -181,7 +181,7 @@ public struct QDouble {
     }
     
     /** Computes fl(a*b) and err(a*b). */
-    private static func two_prod(_ a: Double, _ b: Double) -> (res:Double, err:Double) {
+    @inlinable static func two_prod(_ a: Double, _ b: Double) -> (res:Double, err:Double) {
         let p = a * b
         let (a_hi, a_lo) = split(a)
         let (b_hi, b_lo) = split(b)
@@ -189,15 +189,15 @@ public struct QDouble {
     }
     
     /** Computes fl(a*a) and err(a*a).  Faster than the above method. */
-    private static func two_sqr(_ a: Double) -> (res:Double, err:Double) {
+    @inlinable static func two_sqr(_ a: Double) -> (res:Double, err:Double) {
         let q = a * a
         let (hi, lo) = split(a)
         return (q, ((hi * hi - q) + 2.0 * hi * lo) + lo * lo)
     }
     
     /** Computes the nearest integer to d. */
-    private static func nint(_ d: Double) -> Double { d == Foundation.floor(d) ? d : Foundation.floor(d + 0.5) }
-    public static func trunc(_ a:QDouble) -> QDouble { a.x[0] >= 0 ? floor(a) : ceil(a) }
+    @inlinable static func nint(_ d: Double) -> Double { d == Foundation.floor(d) ? d : Foundation.floor(d + 0.5) }
+    @inlinable static func trunc(_ a:QDouble) -> QDouble { a.x[0] >= 0 ? floor(a) : ceil(a) }
     
     /********** Renormalization **********/
     fileprivate static func quick_renorm(_ c0: inout Double, _ c1: inout Double, _ c2: inout Double, _ c3: inout Double, _ c4: inout Double) {
@@ -216,7 +216,7 @@ public struct QDouble {
         c3 = t0.err + t1.res
     }
     
-    fileprivate static func renorm(_ c0: inout Double, _ c1: inout Double, _ c2: inout Double, _ c3: inout Double) {
+    public static func renorm(_ c0: inout Double, _ c1: inout Double, _ c2: inout Double, _ c3: inout Double) {
         if c0.isInfinite { return }
         var s0,s2,s3:Double
         
@@ -244,7 +244,7 @@ public struct QDouble {
         c0 = s0; c1 = s1; c2 = s2; c3 = s3
     }
     
-    fileprivate static func renorm(_ c0: inout Double, _ c1: inout Double, _ c2: inout Double, _ c3: inout Double, _ c4: inout Double) {
+    public static func renorm(_ c0: inout Double, _ c1: inout Double, _ c2: inout Double, _ c3: inout Double, _ c4: inout Double) {
         if c0.isInfinite { return }
         
         var s0, s2, s3:Double
@@ -293,13 +293,13 @@ public struct QDouble {
         c0 = s0; c1 = s1; c2 = s2; c3 = s3
     }
     
-    mutating fileprivate func renorm() {
+    @inlinable mutating func renorm() {
         var a = x[0]; var b = x[1]; var c = x[2]
         QDouble.renorm(&a, &b, &c, &x[3])
         x[0] = a; x[1] = b; x[2] = c
     }
     
-    mutating fileprivate func renorm(_ e: inout Double) {
+    @inlinable mutating func renorm(_ e: inout Double) {
         var a = x.x; var b = x.y; var c = x.z
         QDouble.renorm(&a, &b, &c, &x.w, &e)
         x.x = a; x.y = b; x.z = c
@@ -307,14 +307,14 @@ public struct QDouble {
     
     /********** Additions ************/
 
-    fileprivate static func three_sum(_ a: inout Double, _ b: inout Double, _ c: inout Double) {
+    @inlinable static func three_sum(_ a: inout Double, _ b: inout Double, _ c: inout Double) {
         let t1 : Double; var t2, t3:Double
         (t1,t2) = two_sum(a, b)
         (a, t3) = two_sum(c, t1)
         (b, c)  = two_sum(t2, t3)
     }
     
-    fileprivate static func three_sum2(_ a: inout Double, _ b: inout Double, _ c: inout Double) {
+    @inlinable static func three_sum2(_ a: inout Double, _ b: inout Double, _ c: inout Double) {
         let t1 : Double; var t2, t3:Double
         (t1,t2) = two_sum(a, b)
         (a, t3) = two_sum(c, t1)
@@ -322,7 +322,7 @@ public struct QDouble {
     }
 
     /* quad-Double + Double */
-    static public func + (_ a: QDouble, _ b: Double) -> QDouble {
+    @inlinable static public func + (_ a: QDouble, _ b: Double) -> QDouble {
         var c0,c1,c2,c3,e: Double
         
         (c0, e) = two_sum(a.x[0], b)
@@ -334,7 +334,7 @@ public struct QDouble {
         return QDouble(c0, c1, c2, c3)
     }
     
-    static public func + (_ a: QDouble, _ b: DDouble) -> QDouble {
+    @inlinable static public func + (_ a: QDouble, _ b: DDouble) -> QDouble {
         var s0,s1,s3,t0,t1:Double
         
         (s0, t0) = two_sum(a.x[0], b.hi)
@@ -352,14 +352,14 @@ public struct QDouble {
         return QDouble(s0, s1, s2, s3)
     }
     
-    static public func + (_ a: Double, _ b: QDouble) -> QDouble { b + a }
-    static public func + (_ a: DDouble, _ b: QDouble) -> QDouble { b + a }
+    @inlinable static public func + (_ a: Double, _ b: QDouble) -> QDouble { b + a }
+    @inlinable static public func + (_ a: DDouble, _ b: QDouble) -> QDouble { b + a }
     
     /* s = quick_three_accum(a, b, c) adds c to the dd-pair (a, b).
      * If the result does not fit in two Doubles, then the sum is
      * output into s and (a,b) contains the remainder.  Otherwise
      * s is zero and (a,b) contains the sum. */
-    fileprivate static func quick_three_accum(_ a: inout Double, _ b: inout Double, _ c: Double) -> Double {
+    @inlinable static func quick_three_accum(_ a: inout Double, _ b: inout Double, _ c: Double) -> Double {
         var s:Double
         (s, b) = two_sum(b, c)
         (s, a) = two_sum(a, s)
@@ -376,12 +376,12 @@ public struct QDouble {
     }
     
     /********** Accessors **********/
-    fileprivate subscript (n: Int) -> Double {
+    @inlinable subscript (n: Int) -> Double {
         get { x[n] }
         set { x[n] = newValue }
     }
     
-    fileprivate static func ieee_add(_ a: QDouble, _ b: QDouble) -> QDouble {
+    @inlinable static func ieee_add(_ a: QDouble, _ b: QDouble) -> QDouble {
         var i = 0, j = 0, k = 0
         var u,v:Double
         var x = SIMD4<Double>.zero
@@ -426,7 +426,7 @@ public struct QDouble {
         return QDouble(x)
     }
     
-    fileprivate static func sloppy_add(_ a: QDouble, _ b: QDouble) -> QDouble {
+    @inlinable static func sloppy_add(_ a: QDouble, _ b: QDouble) -> QDouble {
         /*
         Double s0, s1, s2, s3
         Double t0, t1, t2, t3
@@ -472,13 +472,13 @@ public struct QDouble {
     }
     
     /* quad-Double + quad-Double */
-    public  static func + (_ a: QDouble, _ b: QDouble) -> QDouble { SLOPPY_ADD ? sloppy_add(a, b) : ieee_add(a, b) }
+    public static func + (_ a: QDouble, _ b: QDouble) -> QDouble { SLOPPY_ADD ? sloppy_add(a, b) : ieee_add(a, b) }
     
     /********** Multiplications **********/
     
-    fileprivate static func mul_pwr2(_ a: QDouble, _ b: Double) -> QDouble { QDouble(a.x * b) }
+    @inlinable static func mul_pwr2(_ a: QDouble, _ b: Double) -> QDouble { QDouble(a.x * b) }
     
-    fileprivate static func mul(_ a: QDouble, _ b: Double) -> QDouble {
+    @inlinable static func mul(_ a: QDouble, _ b: Double) -> QDouble {
         var p0, p1, p2, p3: Double
         var q0, q1, q2: Double
         var s0, s1, s2, s3, s4: Double
@@ -513,7 +513,7 @@ public struct QDouble {
                        a1 * b2     7
                        a2 * b1     8
                        a3 * b0     9  */
-    fileprivate static func sloppy_mul(_ a: QDouble, _ b: QDouble) -> QDouble {
+    @inlinable static func sloppy_mul(_ a: QDouble, _ b: QDouble) -> QDouble {
         var (p0, q0) = two_prod(a[0], b[0])
         var (p1, q1) = two_prod(a[0], b[1])
         var (p2, q2) = two_prod(a[1], b[0])
@@ -540,7 +540,7 @@ public struct QDouble {
         return QDouble(p0, p1, s0, s1)
     }
     
-    static func accurate_mul(_ a: QDouble, _ b: QDouble) -> QDouble {
+    @inlinable static func accurate_mul(_ a: QDouble, _ b: QDouble) -> QDouble {
         var (p0, q0) = two_prod(a[0], b[0])
         var (p1, q1) = two_prod(a[0], b[1])
         var (p2, q2) = two_prod(a[1], b[0])
@@ -597,7 +597,7 @@ public struct QDouble {
     /// Square the quad-double number *a* where x = a.
     /// x² = (x₀ + x₁ + x₂ + x₃)²
     ///    = x₀² + 2x₀ ∙ x₁ + (2x₀ ∙ x₂ + x₁²) + (2x₀ ∙ x₃ + 2x₁ ∙ x₂)
-    static public func sqr(_ a: QDouble) -> QDouble {
+    @inlinable static public func sqr(_ a: QDouble) -> QDouble {
         var (p0, q0) = two_sqr(a[0])
         var (p1, q1) = two_prod(2.0 * a[0], a[1])
         var (p2, q2) = two_prod(2.0 * a[0], a[2])
@@ -635,34 +635,34 @@ public struct QDouble {
     }
     
     /* ********* Equality Comparison ********* */
-    static public func == (_ a: QDouble, b: Double) -> Bool  { a.x == SIMD4(b, 0, 0, 0) }
-    static public func == (_ a: QDouble, b: QDouble) -> Bool { a.x == b.x }
+    @inlinable static public func == (_ a: QDouble, b: Double) -> Bool  { a.x == SIMD4(b, 0, 0, 0) }
+    @inlinable static public func == (_ a: QDouble, b: QDouble) -> Bool { a.x == b.x }
     
     /* ********* Less-Than Comparison ********** */
-    static public func < (_ a: QDouble, b: Double) -> Bool { a[0] < b || (a[0] == b && a[1] < 0) }
+    @inlinable static public func < (_ a: QDouble, b: Double) -> Bool { a[0] < b || (a[0] == b && a[1] < 0) }
     
-    static public func < (_ a: QDouble, b: QDouble) -> Bool {
+    @inlinable static public func < (_ a: QDouble, b: QDouble) -> Bool {
         a[0] < b[0] || (a[0] == b[0] && (a[1] < b[1] || (a[1] == b[1] && (a[2] < b[2] || (a[2] == b[2] && a[3] < b[3])))))
     }
     
     /* ********* Greater-Than Comparison ********** */
-    static public func > (_ a: QDouble, b: Double) -> Bool { a[0] > b || (a[0] == b && a[1] > 0) }
+    @inlinable static public func > (_ a: QDouble, b: Double) -> Bool { a[0] > b || (a[0] == b && a[1] > 0) }
     
     /* ********* Less-Than-Or-Equal-To Comparison ********* */
-    static public func <= (_ a: QDouble, b: Double) -> Bool { a[0] < b || (a[0] == b && a[1] <= 0) }
+    @inlinable static public func <= (_ a: QDouble, b: Double) -> Bool { a[0] < b || (a[0] == b && a[1] <= 0) }
     
     /*  ********* Greater-Than-Or-Equal-To Comparison **********/
-    static public func >= (_ a: QDouble, b: Double) -> Bool { a[0] > b || (a[0] == b && a[1] >= 0) }
+    @inlinable static public func >= (_ a: QDouble, b: Double) -> Bool { a[0] > b || (a[0] == b && a[1] >= 0) }
     
-    public var isZero: Bool     { x[0] == 0.0 }
-    public var isOne: Bool      { x == SIMD4.one }
-    public var isPositive: Bool { x[0] > 0 }
-    public var isNegative: Bool { x[0] < 0 }
+    @inlinable public var isZero: Bool     { x[0] == 0.0 }
+    @inlinable public var isOne: Bool      { x == SIMD4.one }
+    @inlinable public var isPositive: Bool { x[0] > 0 }
+    @inlinable public var isNegative: Bool { x[0] < 0 }
 
-    static public func inv(_ qd: QDouble) -> QDouble  { 1.0 / qd }
+    @inlinable static public func inv(_ qd: QDouble) -> QDouble  { 1.0 / qd }
     
-    public var double: Double { x[0] }
-    public var int: Int       { Int(x[0]) }
+    @inlinable public var double: Double { x[0] }
+    @inlinable public var int: Int       { Int(x[0]) }
     
     static fileprivate func max(_ a: [QDouble]) -> QDouble  {
         var a = a
@@ -682,9 +682,9 @@ public struct QDouble {
     }
     
     /** Random number generator */
-    static public func rand() -> QDouble { qdrand() }
+    @inlinable static public func rand() -> QDouble { qdrand() }
     
-    static public func ldexp(_ a: QDouble, _ n: Int) -> QDouble {
+    @inlinable static public func ldexp(_ a: QDouble, _ n: Int) -> QDouble {
         QDouble(scalbn(a[0], n), scalbn(a[1], n), scalbn(a[2], n), scalbn(a[3], n))
     }
     
@@ -794,7 +794,7 @@ public struct QDouble {
     }
     
     /* quad-Double / quad-Double */
-    fileprivate static func sloppy_div(_ a: QDouble, _ b: QDouble) -> QDouble {
+    @inlinable static func sloppy_div(_ a: QDouble, _ b: QDouble) -> QDouble {
 //        let a = a.x, b = b.x
         
         var q0 = a[0] / b[0]
@@ -812,7 +812,7 @@ public struct QDouble {
         return QDouble(q0, q1, q2, q3)
     }
     
-    fileprivate static func accurate_div(_ a: QDouble, _ b: QDouble) -> QDouble {
+    @inlinable static func accurate_div(_ a: QDouble, _ b: QDouble) -> QDouble {
  //       let a = a.x, b = b.x
     
         var q0 = a[0] / b[0]
