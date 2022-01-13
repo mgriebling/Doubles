@@ -18,35 +18,34 @@ public struct QDouble {
     /// Set SLOPPY_XXX to true to enable a faster operations but without
     /// full IEEE compliance
     ///
-    static fileprivate let SLOPPY_ADD = true    // sloppy gives 10x speed-up
-    static fileprivate let SLOPPY_MUL = true    // sloppy gives 1.25x speed-up
-    static fileprivate let SLOPPY_DIV = false   // sloppy no apparent time difference
+    public static let SLOPPY_ADD = true    // sloppy gives 10x speed-up
+    public static let SLOPPY_MUL = true    // sloppy gives 1.25x speed-up
+    public static let SLOPPY_DIV = false   // sloppy no apparent time difference
     
-// Test SLOPPY_ADD & SLOPPY_MUL = true, SLOPY_DIV = false
-// Machine: 3.6GHz 10-core Intel Core i9
-//
-//       add:       0.983875 us    1.0164 mop/s
-//       mul:       1.075700 us    0.9296 mop/s
-//       div:       1.072325 us    0.9326 mop/s
-//       sqrt:     14.715750 us    0.0680 mop/s
-//       sin:      53.827500 us    0.0186 mop/s
-//       log:     165.760000 us    0.0060 mop/s
-//       dot:       1.906900 us    0.5244 mop/s
-//       exp:      53.590000 us    0.0187 mop/s
-//       cos:      52.115000 us    0.0192 mop/s
-//
-// C-based runs:
-//
-//       add:       0.021113 us   47.3653 mop/s
-//       mul:       0.045340 us   22.0556 mop/s
-//       div:       0.253510 us    3.9446 mop/s
-//       sqrt:      0.669125 us    1.4945 mop/s
-//       sin:       2.533000 us    0.3948 mop/s
-//       log:       8.759000 us    0.1142 mop/s
-//       dot:       0.037224 us   26.8646 mop/s
-//       exp:       2.765000 us    0.3617 mop/s
-//       cos:       2.559750 us    0.3907 mop/s
-
+    // Test SLOPPY_ADD & SLOPPY_MUL = true, SLOPY_DIV = false
+    // Machine: 3.6GHz 10-core Intel Core i9
+    //
+    // Swift-based runs:
+    //      add:   0.053525 μs    18.6829 mop/s
+    //      mul:   0.124817 μs     8.0117 mop/s
+    //      div:   0.527525 μs     1.8956 mop/s
+    //      sqrt:  1.626325 μs     0.6149 mop/s
+    //      sin:   5.922500 μs     0.1688 mop/s
+    //      log:  11.939000 μs     0.0838 mop/s
+    //      dot:   0.046288 μs    21.6041 mop/s
+    //      exp:   3.253000 μs     0.3074 mop/s
+    //      cos:   5.614750 μs     0.1781 mop/s
+    //
+    // C++-based runs:
+    //      add:   0.021325 us   46.8933 mop/s
+    //      mul:   0.044258 us   22.5950 mop/s
+    //      div:   0.256070 us    3.9052 mop/s
+    //      sqrt:  0.666375 us    1.5007 mop/s
+    //      sin:   2.489750 us    0.4016 mop/s
+    //      log:   8.771000 us    0.1140 mop/s
+    //      dot:   0.037615 us   26.5851 mop/s
+    //      exp:   2.707000 us    0.3694 mop/s
+    //      cos:   2.527750 us    0.3956 mop/s
     
     ///
     /// Internal/public constants
@@ -57,7 +56,7 @@ public struct QDouble {
     public static let pi4 =     QDouble(7.853981633974482790e-01, 3.061616997868383018e-17, -7.486924524295849165e-34, 2.781135552158413204e-50)
  
     public static let e =       QDouble(2.718281828459045091e+00, 1.445646891729250158e-16, -2.127717108038176765e-33, 1.515630159841218954e-49)
-    public static let log2 =    QDouble(6.931471805599452862e-01, 2.319046813846299558e-17, 5.707708438416212066e-34, -3.582432210601811423e-50)
+    public static let Log2 =    QDouble(6.931471805599452862e-01, 2.319046813846299558e-17, 5.707708438416212066e-34, -3.582432210601811423e-50)
     public static let Log10 =   QDouble(2.302585092994045901e+00, -2.170756223382249351e-16, -9.984262454465776570e-33, -4.023357454450206379e-49)
 
     private static let pi1024 = QDouble(3.067961575771282340e-03, 1.195944139792337116e-19, -2.924579892303066080e-36, 1.086381075061880158e-52)
@@ -67,12 +66,11 @@ public struct QDouble {
     public static let inf =     QDouble(Double.infinity, Double.infinity, Double.infinity, Double.infinity)
     
     public static let eps =     1.21543267145725e-63       // = 2^-209
-    public static let digits = 62
+    public static let digits =  62
     public static let max =     QDouble(1.79769313486231570815e+308, 9.97920154767359795037e+291, 5.53956966280111259858e+275, 3.07507889307840487279e+259)
     
     private static let _min_normalized = 1.6259745436952323e-260    // = 2^(-1022 + 3*53)
     private static let _safe_max =       QDouble(1.7976931080746007281e+308,  9.97920154767359795037e+291, 5.53956966280111259858e+275, 3.07507889307840487279e+259)
-
     
     //
     // number storage
@@ -106,7 +104,7 @@ public struct QDouble {
         if let q : QDouble = Common.toFloat(s) {
             x = q.x
         } else {
-            Common.error("(Quad.init): STRING CONVERT ERROR.")
+            Common.error("\(#function): STRING CONVERT ERROR.")
             x = QDouble.nan.x
         }
     }
@@ -133,112 +131,47 @@ public struct QDouble {
     @inlinable public var isFinite: Bool   { x[0].isFinite }
     @inlinable public var isInfinite: Bool { x[0].isInfinite }
     
-    /*********** Basic Functions ************/
-    /** Computes fl(a+b) and err(a+b).  Assumes |a| >= |b|. */
-    @inlinable static func quick_two_sum(_ a: Double, _ b: Double) -> (res: Double, err: Double) {
-        let s = a + b
-        return (s, b - (s - a))
-    }
-    
-    /** Computes fl(a-b) and err(a-b).  Assumes |a| >= |b| */
-    @inlinable static func quick_two_diff(_ a: Double, _ b: Double) -> (res:Double, err:Double) {
-        let s = a - b
-        return (s, (a - s) - b)
-    }
-    
-    /** Computes fl(a+b) and err(a+b).  */
-    @inlinable static func two_sum(_ a: Double, _ b: Double) -> (res:Double, err:Double) {
-        let s = a + b
-        let bb = s - a
-        return (s, (a - (s - bb)) + (b - bb))
-    }
-    
-    /** Computes fl(a-b) and err(a-b).  */
-    @inlinable static func two_diff(_ a: Double, _ b: Double) -> (res:Double, err:Double) {
-        let s = a - b
-        let bb = s - a
-        return (s, (a - (s - bb)) - (b + bb))
-    }
-    
-    /** Computes high word and lo word of a */
-    @inlinable static func split(_ a: Double) -> (hi: Double, lo: Double) {
-        let SPLITTER = 134217729.0               // = 2^27 + 1
-        let SPLIT_THRESH = 6.69692879491417e+299 // = 2^996
-        let two28 = 268435456.0                     // 2^28
-        let invTwo28 = 1.0/two28                 // 2^-28
-        if Swift.abs(a) > SPLIT_THRESH {
-            var a = a
-            a *= invTwo28
-            let temp = SPLITTER * a
-            let hi = temp - (temp - a)
-            let lo = a - hi
-            return (hi*two28, lo*two28)
-        } else {
-            let temp = SPLITTER * a
-            let hi = temp - (temp - a)
-            return (hi, a - hi)
-        }
-    }
-    
-    /** Computes fl(a*b) and err(a*b). */
-    @inlinable static func two_prod(_ a: Double, _ b: Double) -> (res:Double, err:Double) {
-        let p = a * b
-        let (a_hi, a_lo) = split(a)
-        let (b_hi, b_lo) = split(b)
-        return (p, ((a_hi * b_hi - p) + a_hi * b_lo + a_lo * b_hi) + a_lo * b_lo)
-    }
-    
-    /** Computes fl(a*a) and err(a*a).  Faster than the above method. */
-    @inlinable static func two_sqr(_ a: Double) -> (res:Double, err:Double) {
-        let q = a * a
-        let (hi, lo) = split(a)
-        return (q, ((hi * hi - q) + 2.0 * hi * lo) + lo * lo)
-    }
-    
-    /** Computes the nearest integer to d. */
-    @inlinable static func nint(_ d: Double) -> Double { d == Foundation.floor(d) ? d : Foundation.floor(d + 0.5) }
-    @inlinable static func trunc(_ a:QDouble) -> QDouble { a.x[0] >= 0 ? floor(a) : ceil(a) }
-    
     /********** Renormalization **********/
-    fileprivate static func quick_renorm(_ c0: inout Double, _ c1: inout Double, _ c2: inout Double, _ c3: inout Double, _ c4: inout Double) {
-        let (s, t3) = quick_two_sum(c3, c4)
-        var t2 = quick_two_sum(c2, s)
-        var t1 = quick_two_sum(c1, t2.res)
-        var t0 = quick_two_sum(c0, t1.res); c0 = t0.res
+    private static func quick_renorm(_ c0: inout Double, _ c1: inout Double, _ c2: inout Double, _ c3: inout Double, _ c4: inout Double) {
+        var t0=0.0, t1=0.0, t2=0.0, t3=0.0
+        var s = quick_two_sum(c3, c4, &t3)
+        s  = quick_two_sum(c2, s , &t2)
+        s  = quick_two_sum(c1, s , &t1)
+        c0 = quick_two_sum(c0, s , &t0)
+
+        s  = quick_two_sum(t2, t3, &t2)
+        s  = quick_two_sum(t1, s , &t1)
+        c1 = quick_two_sum(t0, s , &t0)
+
+        s  = quick_two_sum(t1, t2, &t1)
+        c2 = quick_two_sum(t0, s , &t0)
         
-        t2 = quick_two_sum(t2.err, t3)
-        t1 = quick_two_sum(t1.err, t2.res)
-        t0 = quick_two_sum(t0.err, t1.res); c1 = t0.res
-        
-        t1 = quick_two_sum(t1.err, t2.err)
-        t0 = quick_two_sum(t0.err, t1.res); c2 = t0.res
-        
-        c3 = t0.err + t1.res
+        c3 = t0 + t1
     }
     
     public static func renorm(_ c0: inout Double, _ c1: inout Double, _ c2: inout Double, _ c3: inout Double) {
         if c0.isInfinite { return }
-        var s0,s2,s3:Double
         
-        (s0, c3) = quick_two_sum(c2, c3)
-        (s0, c2) = quick_two_sum(c1, s0)
-        (c0, c1) = quick_two_sum(c0, s0)
+        var s0 = quick_two_sum(c2, c3, &c3)
+        s0 = quick_two_sum(c1, s0, &c2)
+        c0 = quick_two_sum(c0, s0, &c1)
         
-        s0 = c0; s2 = 0; s3 = 0
+        s0 = c0
         var s1 = c1
-        if !s1.isZero {
-            (s1,s2) = quick_two_sum(s1, c2)
-            if !s2.isZero {
-                (s2, s3) = quick_two_sum(s2, c3)
+        var s2 = 0.0, s3 = 0.0
+        if (s1 != 0.0) {
+            s1 = quick_two_sum(s1, c2, &s2);
+            if (s2 != 0.0) {
+                s2 = quick_two_sum(s2, c3, &s3);
             } else {
-                (s1, s2) = quick_two_sum(s1, c3)
+                s1 = quick_two_sum(s1, c3, &s2);
             }
         } else {
-            (s0, s1) = quick_two_sum(s0, c2)
-            if !s1.isZero {
-                (s1, s2) = quick_two_sum(s1, c3)
+            s0 = quick_two_sum(s0, c2, &s1);
+            if (s1 != 0.0) {
+                s1 = quick_two_sum(s1, c3, &s2);
             } else {
-                (s0, s1) = quick_two_sum(s0, c3)
+                s0 = quick_two_sum(s0, c3, &s1);
             }
         }
         c0 = s0; c1 = s1; c2 = s2; c3 = s3
@@ -247,53 +180,52 @@ public struct QDouble {
     public static func renorm(_ c0: inout Double, _ c1: inout Double, _ c2: inout Double, _ c3: inout Double, _ c4: inout Double) {
         if c0.isInfinite { return }
         
-        var s0, s2, s3:Double
-        (s0, c4) = quick_two_sum(c3, c4)
-        (s0, c3) = quick_two_sum(c2, s0)
-        (s0, c2) = quick_two_sum(c1, s0)
-        (c0, c1) = quick_two_sum(c0, s0)
+        var s0 = quick_two_sum(c3, c4, &c4)
+        s0 = quick_two_sum(c2, s0, &c3)
+        s0 = quick_two_sum(c1, s0, &c2)
+        c0 = quick_two_sum(c0, s0, &c1)
         
-        s0 = c0; s2 = 0; s3 = 0
+        s0 = c0; var s2 = 0.0, s3 = 0.0
         var s1 = c1
-        if !s1.isZero {
-            (s1, s2) = quick_two_sum(s1, c2)
-            if !s2.isZero {
-                (s2, s3) = quick_two_sum(s2, c3)
-                if !s3.isZero {
-                    s3 += c4
+        if (s1 != 0.0) {
+            s1 = quick_two_sum(s1, c2, &s2);
+            if (s2 != 0.0) {
+                s2 = quick_two_sum(s2, c3, &s3);
+                if (s3 != 0.0) {
+                    s3 += c4;
                 } else {
-                    (s2, s3) = quick_two_sum(s2, c4)
+                    s2 = quick_two_sum(s2, c4, &s3);
                 }
             } else {
-                (s1, s2) = quick_two_sum(s1, c3)
-                if !s2.isZero {
-                    (s2, s3) = quick_two_sum(s2, c4)
+                s1 = quick_two_sum(s1, c3, &s2);
+                if (s2 != 0.0) {
+                    s2 = quick_two_sum(s2, c4, &s3);
                 } else {
-                    (s1, s2) = quick_two_sum(s1, c4)
+                    s1 = quick_two_sum(s1, c4, &s2);
                 }
             }
         } else {
-            (s0, s1) = quick_two_sum(s0, c2)
-            if !s1.isZero {
-                (s1, s2) = quick_two_sum(s1, c3)
-                if !s2.isZero {
-                    (s2, s3) = quick_two_sum(s2, c4)
+            s0 = quick_two_sum(s0, c2, &s1);
+            if (s1 != 0.0) {
+                s1 = quick_two_sum(s1, c3, &s2);
+                if (s2 != 0.0) {
+                    s2 = quick_two_sum(s2, c4, &s3);
                 } else {
-                    (s1, s2) = quick_two_sum(s1, c4)
+                    s1 = quick_two_sum(s1, c4, &s2);
                 }
             } else {
-                (s0, s1) = quick_two_sum(s0, c3)
-                if !s1.isZero {
-                    (s1, s2) = quick_two_sum(s1, c4)
+                s0 = quick_two_sum(s0, c3, &s1);
+                if (s1 != 0.0) {
+                    s1 = quick_two_sum(s1, c4, &s2);
                 } else {
-                    (s0, s1) = quick_two_sum(s0, c4)
+                    s0 = quick_two_sum(s0, c4, &s1);
                 }
             }
         }
         c0 = s0; c1 = s1; c2 = s2; c3 = s3
     }
     
-    @inlinable mutating func renorm() {
+   @inlinable mutating func renorm() {
         var a = x[0]; var b = x[1]; var c = x[2]
         QDouble.renorm(&a, &b, &c, &x[3])
         x[0] = a; x[1] = b; x[2] = c
@@ -308,44 +240,44 @@ public struct QDouble {
     /********** Additions ************/
 
     @inlinable static func three_sum(_ a: inout Double, _ b: inout Double, _ c: inout Double) {
-        let t1 : Double; var t2, t3:Double
-        (t1,t2) = two_sum(a, b)
-        (a, t3) = two_sum(c, t1)
-        (b, c)  = two_sum(t2, t3)
+        var t2 = 0.0, t3 = 0.0
+        let t1 = two_sum(a, b, &t2)
+        a  = two_sum(c, t1, &t3)
+        b  = two_sum(t2, t3, &c)
     }
     
     @inlinable static func three_sum2(_ a: inout Double, _ b: inout Double, _ c: inout Double) {
-        let t1 : Double; var t2, t3:Double
-        (t1,t2) = two_sum(a, b)
-        (a, t3) = two_sum(c, t1)
-        b = t2 + t3
+        var t2 = 0.0, t3 = 0.0
+        let t1 = two_sum(a, b, &t2);
+        a  = two_sum(c, t1, &t3);
+        b = t2 + t3;
     }
 
     /* quad-Double + Double */
     @inlinable static public func + (_ a: QDouble, _ b: Double) -> QDouble {
-        var c0,c1,c2,c3,e: Double
+        var c0,c1,c2,c3: Double; var e = 0.0
         
-        (c0, e) = two_sum(a.x[0], b)
-        (c1, e) = two_sum(a.x[1], e)
-        (c2, e) = two_sum(a.x[2], e)
-        (c3, e) = two_sum(a.x[3], e)
+        c0 = two_sum(a[0], b, &e);
+        c1 = two_sum(a[1], e, &e);
+        c2 = two_sum(a[2], e, &e);
+        c3 = two_sum(a[3], e, &e);
         
         renorm(&c0, &c1, &c2, &c3, &e)
         return QDouble(c0, c1, c2, c3)
     }
     
     @inlinable static public func + (_ a: QDouble, _ b: DDouble) -> QDouble {
-        var s0,s1,s3,t0,t1:Double
+        var s0,s1,s3:Double; var t0 = 0.0, t1 = 0.0
         
-        (s0, t0) = two_sum(a.x[0], b.hi)
-        (s1, t1) = two_sum(a.x[1], b.lo)
-        
-        (s1, t0) = two_sum(s1, t0)
+        s0 = two_sum(a[0], b.hi, &t0);
+        s1 = two_sum(a[1], b.lo, &t1);
+
+        s1 = two_sum(s1, t0, &t0);
         
         var s2 = a.x[2];
         three_sum(&s2, &t0, &t1)
         
-        (s3, t0) = two_sum(t0, a.x[3])
+        s3 = two_sum(t0, a[3], &t0);
         t0 += t1
         
         renorm(&s0, &s1, &s2, &s3, &t0)
@@ -360,12 +292,11 @@ public struct QDouble {
      * output into s and (a,b) contains the remainder.  Otherwise
      * s is zero and (a,b) contains the sum. */
     @inlinable static func quick_three_accum(_ a: inout Double, _ b: inout Double, _ c: Double) -> Double {
-        var s:Double
-        (s, b) = two_sum(b, c)
-        (s, a) = two_sum(a, s)
-        
-        let za = !a.isZero
-        let zb = !b.isZero
+        var s = two_sum(b, c, &b);
+        s = two_sum(a, s, &a);
+
+        let za = (a != 0.0);
+        let zb = (b != 0.0);
         
         if za && zb { return s }
         
@@ -383,7 +314,7 @@ public struct QDouble {
     
     @inlinable static func ieee_add(_ a: QDouble, _ b: QDouble) -> QDouble {
         var i = 0, j = 0, k = 0
-        var u,v:Double
+        var t,u,v:Double
         var x = SIMD4<Double>.zero
         
         if Swift.abs(a[i]) > Swift.abs(b[j]) { u = a[i]; i += 1 }
@@ -391,7 +322,7 @@ public struct QDouble {
         if Swift.abs(a[i]) > Swift.abs(b[j]) { v = a[i]; i += 1 }
         else { v = b[j]; j += 1 }
         
-        (u, v) = quick_two_sum(u, v)
+        u = quick_two_sum(u, v, &v);
         
         while k < 4 {
             if i >= 4 && j >= 4 {
@@ -399,8 +330,7 @@ public struct QDouble {
                 if k < 3 { k += 1; x[k] = v }
                 break
             }
-            
-            var t:Double
+    
             if i >= 4 { t = b[j]; j += 1 }
             else if j >= 4 { t = a[i]; i += 1 }
             else if Swift.abs(a[i]) > Swift.abs(b[j]) {
@@ -458,45 +388,41 @@ public struct QDouble {
         u = b.x - v
         t = w + u
         
-        (s[1],t[0]) = two_sum(s[1], t[0])
-        var x = t[0]
-        three_sum(&s[2], &x, &t[1])
-        three_sum2(&s[3], &x, &t[2]); t[0] = x
+        s[1] = two_sum(s[1], t[0], &t[0])
+        var dummy = t[0]
+        three_sum(&s[2], &dummy, &t[1]); t[0] = dummy
+        three_sum2(&s[3], &dummy, &t[2]); t[0] = dummy
         t[0] = t[0] + t[1] + t[3]
         
         /* renormalize */
-        var y = s[0]; x = s[1]; var z = s[2]
+        var y = s[0]; var x = s[1]; var z = s[2]  // Swift requires this?
         renorm(&y, &x, &z, &s[3], &t[0])
         s[0] = y; s[1] = x; s[2] = z
         return QDouble(s)
     }
     
     /* quad-Double + quad-Double */
-    public static func + (_ a: QDouble, _ b: QDouble) -> QDouble { SLOPPY_ADD ? sloppy_add(a, b) : ieee_add(a, b) }
+    @inlinable public static func + (_ a: QDouble, _ b: QDouble) -> QDouble { SLOPPY_ADD ? sloppy_add(a, b) : ieee_add(a, b) }
     
     /********** Multiplications **********/
     
-    @inlinable static func mul_pwr2(_ a: QDouble, _ b: Double) -> QDouble { QDouble(a.x * b) }
+    @inlinable static func mul_pwr2(_ a: QDouble, _ b: Double) -> QDouble { QDouble(a[0] * b, a[1] * b, a[2] * b, a[3] * b) }
     
-    @inlinable static func mul(_ a: QDouble, _ b: Double) -> QDouble {
-        var p0, p1, p2, p3: Double
-        var q0, q1, q2: Double
-        var s0, s1, s2, s3, s4: Double
+    @inlinable static func * (_ a: QDouble, _ b: Double) -> QDouble {
+        var q0 = 0.0, q1 = 0.0, q2 = 0.0
+        let p0 = two_prod(a[0], b, &q0)
+        let p1 = two_prod(a[1], b, &q1)
+        var p2 = two_prod(a[2], b, &q2)
+        var p3 = a[3] * b
         
-        q0 = 0; q1 = 0; q2 = 0
-        (p0, q0) = two_prod(a[0], b)
-        (p1, q1) = two_prod(a[1], b)
-        (p2, q2) = two_prod(a[2], b)
-        p3 = a[3] * b
-        
-        s0 = p0
-        s2 = 0
-        (s1, s2) = two_sum(q0, p1)
+        var s0 = p0
+        var s2 = 0.0
+        var s1 = two_sum(q0, p1, &s2)
         three_sum(&s2, &q1, &p2)
         three_sum2(&q1, &q2, &p3)
-        s3 = q1
+        var s3 = q1
         
-        s4 = q2 + p2
+        var s4 = q2 + p2
         
         renorm(&s0, &s1, &s2, &s3, &s4)
         return QDouble(s0, s1, s2, s3)
@@ -514,12 +440,15 @@ public struct QDouble {
                        a2 * b1     8
                        a3 * b0     9  */
     @inlinable static func sloppy_mul(_ a: QDouble, _ b: QDouble) -> QDouble {
-        var (p0, q0) = two_prod(a[0], b[0])
-        var (p1, q1) = two_prod(a[0], b[1])
-        var (p2, q2) = two_prod(a[1], b[0])
-        var (p3, q3) = two_prod(a[0], b[2])
-        var (p4, q4) = two_prod(a[1], b[1])
-        var (p5, q5) = two_prod(a[2], b[0])
+        var q0 = 0.0, q1 = 0.0, q2 = 0.0, q3 = 0.0, q4 = 0.0, q5 = 0.0
+        var p0 = two_prod(a[0], b[0], &q0)
+
+        var p1 = two_prod(a[0], b[1], &q1)
+        var p2 = two_prod(a[1], b[0], &q2)
+
+        var p3 = two_prod(a[0], b[2], &q3)
+        var p4 = two_prod(a[1], b[1], &q4)
+        var p5 = two_prod(a[2], b[0], &q5)
         
         /* Start Accumulation */
         three_sum(&p1, &p2, &q0)
@@ -528,10 +457,11 @@ public struct QDouble {
         three_sum(&p2, &q1, &q2)
         three_sum(&p3, &p4, &p5)
         /* compute (s0, s1, s2) = (p2, q1, q2) + (p3, p4, p5). */
-        var (s0, t0) = two_sum(p2, p3)
-        var (s1, t1) = two_sum(q1, p4)
-        var s2 = q2 + p5
-        (s1, t0) = two_sum(s1, t0)
+        var t0 = 0.0, t1 = 0.0
+        var s0 = two_sum(p2, p3, &t0)
+        var s1 = two_sum(q1, p4, &t1)
+        var s2 = q2 + p5;
+        s1 = two_sum(s1, t0, &t0)
         s2 += (t0 + t1)
         
         /* O(eps^3) order terms */
@@ -540,13 +470,42 @@ public struct QDouble {
         return QDouble(p0, p1, s0, s1)
     }
     
+    @inlinable static public func * (a:QDouble, b:DDouble) -> QDouble {
+        var q0 = 0.0, q1 = 0.0, q2 = 0.0, q3 = 0.0, q4 = 0.0
+        var p0 = two_prod(a[0], b.hi, &q0)
+        var p1 = two_prod(a[0], b.lo, &q1)
+        var p2 = two_prod(a[1], b.hi, &q2)
+        var p3 = two_prod(a[1], b.lo, &q3)
+        var p4 = two_prod(a[2], b.hi, &q4)
+        
+        three_sum(&p1, &p2, &q0)
+        
+        /* Five-Three-Sum */
+        three_sum(&p2, &p3, &p4)
+        q1 = two_sum(q1, q2, &q2)
+        var t0 = 0.0, t1 = 0.0
+        let s0 = two_sum(p2, q1, &t0)
+        var s1 = two_sum(p3, q2, &t1)
+        s1 = two_sum(s1, t0, &t0)
+        let s2 = t0 + t1 + p4;
+        p2 = s0;
+
+        p3 = a[2] * b.hi + a[3] * b.lo + q3 + q4
+        three_sum2(&p3, &q0, &s1)
+        p4 = q0 + s2
+
+        renorm(&p0, &p1, &p2, &p3, &p4)
+        return QDouble(p0, p1, p2, p3)
+    }
+    
     @inlinable static func accurate_mul(_ a: QDouble, _ b: QDouble) -> QDouble {
-        var (p0, q0) = two_prod(a[0], b[0])
-        var (p1, q1) = two_prod(a[0], b[1])
-        var (p2, q2) = two_prod(a[1], b[0])
-        var (p3, q3) = two_prod(a[0], b[2])
-        var (p4, q4) = two_prod(a[1], b[1])
-        var (p5, q5) = two_prod(a[2], b[0])
+        var q0 = 0.0, q1 = 0.0, q2 = 0.0, q3 = 0.0, q4 = 0.0, q5 = 0.0
+        var p0 = two_prod(a[0], b[0], &q0)
+        var p1 = two_prod(a[0], b[1], &q1)
+        var p2 = two_prod(a[1], b[0], &q2)
+        var p3 = two_prod(a[0], b[2], &q3)
+        var p4 = two_prod(a[1], b[1], &q4)
+        var p5 = two_prod(a[2], b[0], &q5)
         
         /* Start Accumulation */
         three_sum(&p1, &p2, &q0)
@@ -555,35 +514,38 @@ public struct QDouble {
         three_sum(&p2, &q1, &q2)
         three_sum(&p3, &p4, &p5)
         /* compute (s0, s1, s2) = (p2, q1, q2) + (p3, p4, p5). */
-        var (s0, t0) = two_sum(p2, p3)
-        var (s1, t1) = two_sum(q1, p4)
-        var s2 = q2 + p5
-        (s1, t0) = two_sum(s1, t0)
+        var t0 = 0.0, t1 = 0.0
+        var s0 = two_sum(p2, p3, &t0)
+        var s1 = two_sum(q1, p4, &t1)
+        var s2 = q2 + p5;
+        s1 = two_sum(s1, t0, &t0)
         s2 += (t0 + t1)
         
         /* O(eps^3) order terms */
-        var (p6, q6) = two_prod(a[0], b[3])
-        var (p7, q7) = two_prod(a[1], b[2])
-        var (p8, q8) = two_prod(a[2], b[1])
-        var (p9, q9) = two_prod(a[3], b[0])
-        
+        var q6 = 0.0, q7 = 0.0, q8 = 0.0, q9 = 0.0
+        var p6 = two_prod(a[0], b[3], &q6)
+        var p7 = two_prod(a[1], b[2], &q7)
+        var p8 = two_prod(a[2], b[1], &q8)
+        var p9 = two_prod(a[3], b[0], &q9)
+
         /* Nine-Two-Sum of q0, s1, q3, q4, q5, p6, p7, p8, p9. */
-        (q0, q3) = two_sum(q0, q3)
-        (q4, q5) = two_sum(q4, q5)
-        (p6, p7) = two_sum(p6, p7)
-        (p8, p9) = two_sum(p8, p9)
+        q0 = two_sum(q0, q3, &q3)
+        q4 = two_sum(q4, q5, &q5)
+        p6 = two_sum(p6, p7, &p7)
+        p8 = two_sum(p8, p9, &p9)
         /* Compute (t0, t1) = (q0, q3) + (q4, q5). */
-        (t0, t1) = two_sum(q0, q4)
-        t1 += (q3 + q5)
+        t0 = two_sum(q0, q4, &t1);
+        t1 += (q3 + q5);
         /* Compute (r0, r1) = (p6, p7) + (p8, p9). */
-        var (r0, r1) = two_sum(p6, p8)
+        var r1 = 0.0
+        let r0 = two_sum(p6, p8, &r1)
         r1 += (p7 + p9)
         /* Compute (q3, q4) = (t0, t1) + (r0, r1). */
-        (q3, q4) = two_sum(t0, r0)
-        q4 += (t1 + r1)
+        q3 = two_sum(t0, r0, &q4);
+        q4 += (t1 + r1);
         /* Compute (t0, t1) = (q3, q4) + s1. */
-        (t0, t1) = two_sum(q3, s1)
-        t1 += q4
+        t0 = two_sum(q3, s1, &t1);
+        t1 += q4;
         
         /* O(eps^4) terms -- Nine-One-Sum */
         t1 += a[1] * b[3] + a[2] * b[2] + a[3] * b[1] + q6 + q7 + q8 + q9 + s2
@@ -592,77 +554,90 @@ public struct QDouble {
         return QDouble(p0, p1, s0, t0)
     }
     
-    static public func mul(_ a: QDouble, _ b: QDouble) -> QDouble { SLOPPY_MUL ? sloppy_mul(a, b) : accurate_mul(a, b) }
+    @inlinable static public func * (_ a: QDouble, _ b: QDouble) -> QDouble { SLOPPY_MUL ? sloppy_mul(a, b) : accurate_mul(a, b) }
     
     /// Square the quad-double number *a* where x = a.
     /// x² = (x₀ + x₁ + x₂ + x₃)²
     ///    = x₀² + 2x₀ ∙ x₁ + (2x₀ ∙ x₂ + x₁²) + (2x₀ ∙ x₃ + 2x₁ ∙ x₂)
     @inlinable static public func sqr(_ a: QDouble) -> QDouble {
-        var (p0, q0) = two_sqr(a[0])
-        var (p1, q1) = two_prod(2.0 * a[0], a[1])
-        var (p2, q2) = two_prod(2.0 * a[0], a[2])
-        var (p3, q3) = two_sqr(a[1])
-        
-        (p1, q0) = two_sum(q0, p1)
-        
-        (q0, q1) = two_sum(q0, q1)
-        (p2, p3) = two_sum(p2, p3)
-        
-        var (s0, t0) = two_sum(q0, p2)
-        var (s1, t1) = two_sum(q1, p3)
-        
-        (s1, t0) = two_sum(s1, t0)
+        var q0 = 0.0, q1 = 0.0, q2 = 0.0, q3 = 0.0
+        var p0 = two_sqr(a[0], &q0)
+        var p1 = two_prod(2.0 * a[0], a[1], &q1)
+        var p2 = two_prod(2.0 * a[0], a[2], &q2)
+        var p3 = two_sqr(a[1], &q3);
+
+        p1 = two_sum(q0, p1, &q0)
+
+        q0 = two_sum(q0, q1, &q1)
+        p2 = two_sum(p2, p3, &p3)
+
+        var t0 = 0.0, t1 = 0.0
+        let s0 = two_sum(q0, p2, &t0)
+        var s1 = two_sum(q1, p3, &t1)
+
+        s1 = two_sum(s1, t0, &t0)
         t0 += t1
-        
-        (s1, t0) = quick_two_sum(s1, t0)
-        (p2, t1) = quick_two_sum(s0, s1)
-        (p3, q0) = quick_two_sum(t1, t0)
+
+        s1 = quick_two_sum(s1, t0, &t0)
+        p2 = quick_two_sum(s0, s1, &t1)
+        p3 = quick_two_sum(t1, t0, &q0)
         
         var p4 = 2.0 * a[0] * a[3]
         var p5 = 2.0 * a[1] * a[2]
         
-        (p4, p5) = two_sum(p4, p5)
-        (q2, q3) = two_sum(q2, q3)
-        
-        (t0, t1) = two_sum(p4, q2)
-        t1 = t1 + p5 + q3
-        
-        (p3, p4) = two_sum(p3, t0)
-        p4 = p4 + q0 + t1
+        p4 = two_sum(p4, p5, &p5)
+        q2 = two_sum(q2, q3, &q3)
+
+        t0 = two_sum(p4, q2, &t1)
+        t1 = t1 + p5 + q3;
+
+        p3 = two_sum(p3, t0, &p4)
+        p4 = p4 + q0 + t1;
         
         renorm(&p0, &p1, &p2, &p3, &p4)
         return QDouble(p0, p1, p2, p3)
     }
     
     /* ********* Equality Comparison ********* */
-    @inlinable static public func == (_ a: QDouble, b: Double) -> Bool  { a.x == SIMD4(b, 0, 0, 0) }
-    @inlinable static public func == (_ a: QDouble, b: QDouble) -> Bool { a.x == b.x }
+    @inlinable static public func == (a: QDouble, b: Double) -> Bool  { a.x == SIMD4(b, 0, 0, 0) }
+    @inlinable static public func == (a: QDouble, b: QDouble) -> Bool { a.x == b.x }
     
     /* ********* Less-Than Comparison ********** */
-    @inlinable static public func < (_ a: QDouble, b: Double) -> Bool { a[0] < b || (a[0] == b && a[1] < 0) }
-    
-    @inlinable static public func < (_ a: QDouble, b: QDouble) -> Bool {
-        a[0] < b[0] || (a[0] == b[0] && (a[1] < b[1] || (a[1] == b[1] && (a[2] < b[2] || (a[2] == b[2] && a[3] < b[3])))))
-    }
+    @inlinable static public func < (a: QDouble, b: Double) -> Bool  { a[0] < b || (a[0] == b && a[1] < 0.0) }
+    @inlinable static public func < (a: Double,  b: QDouble) -> Bool { b > a }
+    @inlinable static public func < (a: QDouble, b: DDouble) -> Bool { a[0] < b.hi || (a[0] == b.hi && (a[1] < b.lo || (a[1] == b.lo && a[2] < 0.0))) }
+    @inlinable static public func < (a: QDouble, b: QDouble) -> Bool { a[0] < b[0] || (a[0] == b[0] && (a[1] < b[1] || (a[1] == b[1] && (a[2] < b[2] || (a[2] == b[2] && a[3] < b[3]))))) }
     
     /* ********* Greater-Than Comparison ********** */
-    @inlinable static public func > (_ a: QDouble, b: Double) -> Bool { a[0] > b || (a[0] == b && a[1] > 0) }
+    @inlinable static public func > (a: QDouble, b: Double) -> Bool  { a[0] > b || (a[0] == b && a[1] > 0.0) }
+    @inlinable static public func > (a: Double,  b: QDouble) -> Bool { b < a }
+    @inlinable static public func > (a: QDouble, b: DDouble) -> Bool { a[0] > b.hi || (a[0] == b.hi && (a[1] > b.lo || (a[1] == b.lo && a[2] > 0.0))) }
+    @inlinable static public func > (a: QDouble, b: QDouble) -> Bool { a[0] > b[0] || (a[0] == b[0] && (a[1] > b[1] || (a[1] == b[1] && (a[2] > b[2] || (a[2] == b[2] && a[3] > b[3]))))) }
     
     /* ********* Less-Than-Or-Equal-To Comparison ********* */
-    @inlinable static public func <= (_ a: QDouble, b: Double) -> Bool { a[0] < b || (a[0] == b && a[1] <= 0) }
+    @inlinable static public func <= (a: QDouble, b: Double) -> Bool  { a[0] < b || (a[0] == b && a[1] <= 0.0) }
+    @inlinable static public func <= (a: Double, b: QDouble) -> Bool  { b >= a }
+    @inlinable static public func <= (a: QDouble, b: DDouble) -> Bool { a[0] < b.hi || (a[0] == b.hi && (a[1] < b.lo || (a[1] == b.lo && a[2] <= 0.0))) }
+    @inlinable static public func <= (a: DDouble, b: QDouble) -> Bool { b >= a }
+    @inlinable static public func <= (a: QDouble, b:QDouble) -> Bool  { a[0] < b[0] || (a[0] == b[0] && (a[1] < b[1] || (a[1] == b[1] && (a[2] < b[2] || (a[2] == b[2] && a[3] <= b[3]))))) }
     
     /*  ********* Greater-Than-Or-Equal-To Comparison **********/
-    @inlinable static public func >= (_ a: QDouble, b: Double) -> Bool { a[0] > b || (a[0] == b && a[1] >= 0) }
+    @inlinable static public func >= (_ a: QDouble, b: Double) -> Bool  { a[0] > b || (a[0] == b && a[1] >= 0.0) }
+    @inlinable static public func >= (_ a: QDouble, b: DDouble) -> Bool { a[0] > b.hi || (a[0] == b.hi && (a[1] > b.lo || (a[1] == b.lo && a[2] >= 0.0))) }
+    @inlinable static public func >= (_ a: DDouble, b: QDouble) -> Bool { b <= a }
+    @inlinable static public func >= (_ a: Double, b: QDouble) -> Bool  { b <= a }
+    @inlinable static public func >= (_ a: QDouble, b: QDouble) -> Bool { a[0] > b[0] || (a[0] == b[0] && (a[1] > b[1] || (a[1] == b[1] && (a[2] > b[2] || (a[2] == b[2] && a[3] >= b[3]))))) }
     
     @inlinable public var isZero: Bool     { x[0] == 0.0 }
     @inlinable public var isOne: Bool      { x == SIMD4.one }
-    @inlinable public var isPositive: Bool { x[0] > 0 }
-    @inlinable public var isNegative: Bool { x[0] < 0 }
+    @inlinable public var isPositive: Bool { x[0] > 0.0 }
+    @inlinable public var isNegative: Bool { x[0] < 0.0 }
 
     @inlinable static public func inv(_ qd: QDouble) -> QDouble  { 1.0 / qd }
     
-    @inlinable public var double: Double { x[0] }
-    @inlinable public var int: Int       { Int(x[0]) }
+    @inlinable public var double: Double   { x[0] }
+    @inlinable public var ddouble: DDouble { DDouble(x[0], x[1]) }
+    @inlinable public var int: Int         { Int(x[0]) }
     
     static fileprivate func max(_ a: [QDouble]) -> QDouble  {
         var a = a
@@ -690,7 +665,6 @@ public struct QDouble {
     
     static public func nint(_ a: QDouble) -> QDouble {
         var x0, x1, x2, x3: Double
-//        let a = a.x
         x0 = nint(a[0])
         x1 = 0; x2 = 0; x3 = 0
         
@@ -706,20 +680,20 @@ public struct QDouble {
                     /* Third double is already an integer. */
                     x3 = nint(a[3])
                 } else {
-                    if Swift.abs(x2 - a[2]) == 0.5 && a[3] < 0 {
+                    if Swift.abs(x2 - a[2]) == 0.5 && a[3] < 0.0 {
                         x2 -= 1
                     }
                 }
                 
             } else {
-                if Swift.abs(x1 - a[1]) == 0.5 && a[2] < 0 {
+                if Swift.abs(x1 - a[1]) == 0.5 && a[2] < 0.0 {
                     x1 -= 1
                 }
             }
             
         } else {
             /* First Double is not an integer. */
-            if Swift.abs(x0 - a[0]) == 0.5 && a[1] < 0 {
+            if Swift.abs(x0 - a[0]) == 0.5 && a[1] < 0.0 {
                 x0 -= 1
             }
         }
@@ -729,7 +703,6 @@ public struct QDouble {
     }
     
     static public func floor(_ a: QDouble) -> QDouble {
-//        let a = a.x
         var x1 = 0.0, x2 = 0.0, x3 = 0.0
         var x0 = Foundation.floor(a[0])
         
@@ -747,7 +720,6 @@ public struct QDouble {
     }
     
     static public func ceil(_ a: QDouble) -> QDouble {
-//        let a = a.x
         var x1 = 0.0, x2 = 0.0, x3 = 0.0
         var x0 = Foundation.floor(a[0])
         
@@ -773,18 +745,19 @@ public struct QDouble {
         var q0 = a[0] / b  /* approximate quotient */
         
         /* Compute the remainder  a - q0 * b */
-        var (t0, t1) = two_prod(q0, b)
-        var r = a - QDouble(t0, t1)
+        var t1 = 0.0
+        var t0 = two_prod(q0, b, &t1)
+        var r = a - DDouble(t0, t1)
         
         /* Compute the first correction */
         var q1 = r[0] / b
-        (t0, t1) = two_prod(q1, b)
-        r -= QDouble(t0, t1)
+        t0 = two_prod(q1, b, &t1)
+        r -= DDouble(t0, t1)
         
         /* Second correction to the quotient. */
         var q2 = r[0] / b
-        (t0, t1) = two_prod(q2, b)
-        r -= QDouble(t0, t1)
+        t0 = two_prod(q2, b, &t1)
+        r -= DDouble(t0, t1)
         
         /* Final correction to the quotient. */
         var q3 = r[0] / b
@@ -793,10 +766,48 @@ public struct QDouble {
         return QDouble(q0, q1, q2, q3)
     }
     
+    /* quad-double / double-double */
+    static func sloppy_div(_ a: QDouble, _ b: DDouble) -> QDouble  {
+        let qd_b = QDouble(b)
+        
+        var q0 = a[0] / b.hi
+        var r = a - q0 * qd_b
+        
+        var q1 = r[0] / b.hi
+        r -= (q1 * qd_b)
+        
+        var q2 = r[0] / b.hi
+        r -= (q2 * qd_b)
+        
+        var q3 = r[0] / b.hi
+        
+        renorm(&q0, &q1, &q2, &q3)
+        return QDouble(q0, q1, q2, q3)
+    }
+    
+    static func accurate_div(_ a: QDouble, _ b: DDouble) -> QDouble {
+        let qd_b = QDouble(b)
+        
+        var q0 = a[0] / b.hi
+        var r = a - q0 * qd_b;
+        
+        var q1 = r[0] / b.hi
+        r -= (q1 * qd_b);
+        
+        var q2 = r[0] / b.hi
+        r -= (q2 * qd_b);
+        
+        var q3 = r[0] / b.hi
+        r -= (q3 * qd_b);
+        
+        var q4 = r[0] / b.hi
+        
+        renorm(&q0, &q1, &q2, &q3, &q4)
+        return QDouble(q0, q1, q2, q3)
+    }
+    
     /* quad-Double / quad-Double */
     @inlinable static func sloppy_div(_ a: QDouble, _ b: QDouble) -> QDouble {
-//        let a = a.x, b = b.x
-        
         var q0 = a[0] / b[0]
         var r = a - (b * q0)
         
@@ -813,8 +824,6 @@ public struct QDouble {
     }
     
     @inlinable static func accurate_div(_ a: QDouble, _ b: QDouble) -> QDouble {
- //       let a = a.x, b = b.x
-    
         var q0 = a[0] / b[0]
         var r = a - (b * q0)
     
@@ -834,386 +843,27 @@ public struct QDouble {
     }
     
     static public func / (_ a: QDouble, _ b: QDouble) -> QDouble { SLOPPY_DIV ? sloppy_div(a, b) : accurate_div(a, b) }
-    
-    static public func <= (_ a:QDouble,_ b:QDouble) -> Bool {
-        a[0] < b[0] || (a[0] == b[0] && (a[1] < b[1] || (a[1] == b[1] && (a[2] < b[2] || (a[2] == b[2] && a[3] <= b[3])))))
-    }
+    static public func / (_ a: QDouble, _ b: DDouble) -> QDouble { SLOPPY_DIV ? sloppy_div(a, b) : accurate_div(a, b) }
     
     public func string(_ precision: Int, width: Int=0, fmt:Format=[], showpos: Bool = false, uppercase: Bool = false, fill: String = " ") -> String {
         Common.string(self, precision, width: width, fmt: fmt, showpos: showpos, uppercase: uppercase, fill: fill)
     }
     
-    /** Initialize a quad-Double from string *s*. */
-//    static public func toQuad(_ s: String) -> QDouble? {
-//        var p = s.trimmingCharacters(in: CharacterSet.whitespaces)
-//
-//        func getChar() -> Character {
-//            if p.isEmpty { return "\0" }
-//            return p.remove(at: s.startIndex)
-//        }
-//
-//        var ch: Character = getChar()
-//        var sign = 0
-//        var point = -1        /* location of decimal point */
-//        var nd = 0            /* number of digits read */
-//        var e = 0            /* exponent. */
-//        var done = false
-//        var r = QDouble(0.0)    /* number being read */
-//
-//        while !done && ch != "\0" {
-//            if ch >= "0" && ch <= "9" {
-//                /* It's a digit */
-//                if let d = Int(String(ch)) {
-//                    r *= 10.0
-//                    r += Double(d)
-//                    nd += 1
-//                }
-//            } else {
-//                /* Non-digit */
-//                switch ch {
-//                case ".":
-//                    if point >= 0 { return nil }   /* we"ve already encountered a decimal point. */
-//                    point = nd
-//                case "-", "+":
-//                    if sign != 0 || nd > 0 { return nil }  /* we"ve already encountered a sign, or if its
-//                    not at first position. */
-//                    sign = ch == "-" ? -1 : 1
-//                case "E", "e":
-//                    if let n = Int(p) {
-//                        e = n
-//                        done = true
-//                    } else {
-//                        return nil  /* read of exponent failed. */
-//                    }
-//                case " ":
-//                    done = true
-//                default:
-//                    return nil
-//                }
-//            }
-//            ch = getChar()
-//        }
-//
-//        /* Adjust exponent to account for decimal point */
-//        if point >= 0 { e -= (nd - point) }
-//
-//        /* Multiply the the exponent */
-//        if e != 0 { r *= (QDouble(10.0) ** e) }
-//
-//        return (sign < 0) ? -r : r
-//    }
-
-//    fileprivate func to_digits(_ s: inout String, expn: inout Int, precision: Int) {
-//        let D = precision + 1  /* number of digits to compute */
-//        
-//        var r = QDouble.abs(self)
-//        var e: Int  /* exponent */
-//        var d: Int
-//        
-//        s = ""
-//        if x[0].isZero {
-//            /* self == 0.0 */
-//            expn = 0
-//            for _ in 0..<precision { s += "0" }
-//            return
-//        }
-//        
-//        /* First determine the (approximate) exponent. */
-//        e = Int(Foundation.floor(Foundation.log10(Swift.abs(x[0]))))
-//        
-//        if e < -300 {
-//            r *= QDouble(10.0) ** 300
-//            r /= QDouble(10.0) ** (e + 300)
-//        } else if e > 300 {
-//            r = QDouble.ldexp(r, -53)
-//            r /= QDouble(10.0) ** e
-//            r = QDouble.ldexp(r, 53)
-//        } else {
-//            r /= QDouble(10.0) ** e
-//        }
-//        
-//        /* Fix exponent if we are off by one */
-//        if r >= 10.0 {
-//            r /= 10.0
-//            e += 1
-//        } else if r < 1.0 {
-//            r *= 10.0
-//            e -= 1
-//        }
-//        
-//        if r >= 10.0 || r < 1.0 { Common.error("(Quad.to_digits): can't compute exponent."); return }
-//        
-//        /* Extract the digits */
-//        for _ in 0..<D {
-//            d = Int(r.x[0])
-//            r -= Double(d)
-//            r *= 10.0
-//            s += "\(d)"
-//        }
-//        
-//        /* Fix out of range digits. */
-//        for i in (0..<D).reversed() {
-//            if s[i] < "0" {
-//                s[i-1] -= 1
-//                s[i] += 10
-//            } else if s[i] > "9" {
-//                s[i-1] += 1
-//                s[i] -= 10
-//            }
-//        }
-//        
-//        if s[0] < "0" { Common.error("(Quad.to_digits): non-positive leading digit."); return }
-//        
-//        /* Round, handle carry */
-//        if s[D-1] >= "5" {
-//            s[D-2] += 1
-//            
-//            var i = D-2
-//            while i > 0 && s[i] > "9" {
-//                s[i] -= 10
-//                i -= 1; s[i] += 1
-//            }
-//        }
-//        
-//        /* If first digit is 10, shift everything. */
-//        if s[0] > "9" {
-//            e += 1
-//            s = "1" + s
-//            s[1] = "0"
-//        }
-//
-//        expn = e
-//    }
-//    
-//    private static func append_expn(_ str: inout String, expn: Int) {
-//        var expn = expn
-//        var k: Int
-//        
-//        str += expn < 0 ? "-" : "+"
-//        expn = Swift.abs(expn)
-//        
-//        if expn >= 100 {
-//            k = expn / 100
-//            str += "\(k)"
-//            expn -= 100*k
-//        }
-//        
-//        k = expn / 10
-//        str += "\(k)"
-//        expn -= 10*k
-//        
-//        str += "\(expn)"
-//    }
-//
-//    fileprivate static func round_string(_ s: inout String, precision: Int, offset: inout Int) {
-//        /*
-//            Input string must be all digits or errors will occur.
-//        */
-//        let D = precision
-//        
-//        /* Round, handle carry */
-//        if D>0 && s[D] >= "5" {
-//            s[D-1] += 1
-//            
-//            var i = D-1
-//            while i > 0 && s[i] > "9" {
-//                s[i] -= 10
-//                i -= 1; s[i] += 1
-//            }
-//        }
-//        
-//        /* If first digit is 10, shift everything. */
-//        if s.first! > "9" {
-//            // e++ // don't modify exponent here
-//            s = "1" + s
-//            s[1] = "0"
-//            offset += 1    // now offset needs to be increased by one
-//        }
-//    }
-//
-////    public enum FormatOptions { case fixed, floating, left, internalx }
-////    public typealias Format = Set<FormatOptions>
-//
-//    public func string(_ precision: Int, width: Int=0, fmt:Format=[], showpos: Bool = false, uppercase: Bool = false, fill: String = " ") -> String {
-//        var s: String = ""
-//        let fixed : Bool = fmt.contains(.fixed)
-//        var sgn = true
-//        var e = 0
-//        
-//        if isInfinite {
-//            if self.isNegative { s += "-" }
-//            else if showpos { s += "+" }
-//            else { sgn = false }
-//            s += uppercase ? "INF" : "inf"
-//        } else if isNaN {
-//            s = uppercase ? "NAN" : "nan"
-//            sgn = false
-//        } else {
-//            if self.isNegative { s += "-" }
-//            else if showpos { s += "+" }
-//            else { sgn = false }
-//            
-//            if self.isZero {
-//                /* Zero case */
-//                s += "0"
-//                if precision > 0 {
-//                    s += "."
-//                    s = s.padding(toLength: precision, withPad: "0", startingAt: s.count)
-//                }
-//            } else {
-//                /* Non-zero case */
-//                var off = fixed ? (1 + QDouble.int(QDouble.floor(QDouble.log10(QDouble.abs(self))))) : 1
-//                let d = precision + off
-//                
-//                var d_with_extra = d
-//                if fixed { d_with_extra = Swift.max(120, d) } // longer than the max accuracy for DD
-//                
-//                // highly special case - fixed mode, precision is zero, abs(*this) < 1.0
-//                // without this trap a number like 0.9 printed fixed with 0 precision prints as 0
-//                // should be rounded to 1.
-//                if fixed && precision == 0 && QDouble.abs(self) < 1.0 {
-//                    if QDouble.abs(self) >= 0.5 {
-//                        s += "1"
-//                    } else {
-//                        s += "0"
-//                    }
-//                    
-//                    return s
-//                }
-//                
-//                // handle near zero to working precision (but not exactly zero)
-//                if fixed && d <= 0 {
-//                    s += "0"
-//                    if precision > 0 {
-//                        s += "."
-//                        s = s.padding(toLength: precision, withPad: "0", startingAt: 0)
-//                    }
-//                } else {  // default
-//                    var t : String  = ""
-//                    
-//                    if fixed { to_digits(&t, expn: &e, precision: d_with_extra) }
-//                    else     { to_digits(&t, expn: &e, precision: d) }
-//                    
-//                    off = e + 1
-//                    
-//                    if fixed {
-//                        // fix the string if it's been computed incorrectly
-//                        // round here in the decimal string if required
-//                        QDouble.round_string(&t, precision: d, offset: &off)
-//                        
-//                        if off > 0 {
-//                            for i in 0..<off { s += String(t[i]) }
-//                            if precision > 0 {
-//                                s += "."
-//                                var i = off
-//                                for _ in 0..<precision { s += String(t[i]); i += 1 }
-//                            }
-//                        } else {
-//                            s += "0."
-//                            if off < 0 { s = s.padding(toLength: -off, withPad: "0", startingAt: s.count) }
-//                            for i in 0..<d { s += String(t[i]) }
-//                        }
-//                    } else {
-//                        s += String(t[0])
-//                        if precision > 0 { s += "." }
-//                        
-//                        for i in 1...precision {
-//                            s += String(t[i])
-//                        }
-//                    }
-//                }
-//            }
-//            
-//            // trap for improper offset with large values
-//            // without this trap, output of values of the for 10^j - 1 fail for j > 28
-//            // and are output with the point in the wrong place, leading to a dramatically off value
-//            if fixed && precision > 0 {
-//                // make sure that the value isn't dramatically larger
-//                var from_string = atof(s)
-//                
-//                // if this ratio is large, then we"ve got problems
-//                if fabs( from_string / self.x[0] ) > 3.0 {
-//                    
-//                    // loop on the string, find the point, move it up one
-//                    // don't act on the first character
-//                    for i in 1...s.count {
-//                        if s[i] == "." {
-//                            s[i] = s[i-1]
-//                            s[i-1] = "."
-//                            break
-//                        }
-//                    }
-//                    
-//                    from_string = atof(s)
-//                    // if this ratio is large, then the string has not been fixed
-//                    if fabs( from_string / self.x[0] ) > 3.0 {
-//                        Common.error("Re-rounding unsuccessful in large number fixed point trap.")
-//                    }
-//                }
-//            }
-//            
-//            if !fixed {
-//                /* Fill in exponent part */
-//                s += uppercase ? "E" : "e"
-//                QDouble.append_expn(&s, expn: e)
-//            }
-//        }
-//        
-//        /* Fill in the blanks */
-//        let len = s.count
-//        if len < width {
-//            if fmt.contains(.intern) {
-//                if sgn {
-//                    s = s.padding(toLength: width, withPad: fill, startingAt: 1)
-//                } else {
-//                    s = s.padding(toLength: width, withPad: fill, startingAt: 0)
-//                }
-//            } else if fmt.contains(.left) {
-//                s = s.padding(toLength: width, withPad: fill, startingAt: s.count)
-//            } else {
-//                s = s.padding(toLength: width, withPad: fill, startingAt: 0)
-//            }
-//        }
-//        
-//        return s
-//    }
-    
-    /** Computes x^n, where *n* is an integer. */
-//    static public func pow (_ a: QDouble, _ n: Int) -> QDouble {
-//        if n == 0 { return 1 }
-//
-//        var r: QDouble = a        /* odd-case multiplier */
-//        var s: QDouble = 1        /* current answer */
-//        var N = Swift.abs(n)
-//
-//        /* Use binary exponentiation. */
-//        while N > 0 {
-//            /* If odd, multiply by r */
-//            if !N.isMultiple(of: 2) { s *= r }
-//            N /= 2
-//            if N > 0 { r = sqr(r) }
-//        }
-//
-//        return n < 0 ? 1.0 / s : s
-//    }
-    
-//    static func npwr(_ a : QDouble, _ n : Int) -> QDouble { Common.pow(a, n) }
     static public func pow (_ a: QDouble, _ b: QDouble) -> QDouble { exp(b * log(a)) }
 
-    /** Calculates the square root of *a* using
-        the following Newton iteration
-            `x' = x + (1 - a * x^2) * x / 2`
-        which converges to *1/sqrt(a)*, starting with the
-        double-precision approximation to *1/sqrt(a).*
-        Since Newton's iteration more or less doubles the
-        number of correct digits, we only need to perform it
-        thrice.
-    */
+    /// Calculates the square root of *a* using
+    ///    the following Newton iteration
+    ///        `x' = x + (1 - a * x^2) * x / 2`
+    ///    which converges to *1/sqrt(a)*, starting with the
+    ///    double-precision approximation to *1/sqrt(a).*
+    ///    Since Newton's iteration more or less doubles the
+    ///    number of correct digits, we only need to perform it
+    ///    thrice.
     static public func sqrt (_ a: QDouble) -> QDouble {
         if a.isZero { return a }
         
         if a.isNegative {
-            Common.error("(Quad.sqrt): Negative argument.")
+            Common.error("\(#function): Negative argument.")
             return nan
         }
         
@@ -1229,34 +879,27 @@ public struct QDouble {
     }
 
 
-    /** Computes the n-th root of a using Newton's iteration to solve
-                `1/(x^n) - a = 0`.
-        The Newton iteration becomes
-    
-            x' = x + x * (1 - a * x^n) / n.
-    */
+    /// Computes the n-th root of a using Newton's iteration to solve
+    ///            `1/(x^n) - a = 0`.
+    ///    The Newton iteration becomes
+    ///        x' = x + x * (1 - a * x^n) / n.
+    ///
     /// - Note: Since Newton's iteration converges quadratically,
     ///    we only need to perform it thrice.
-    static public func nroot(_ a: QDouble, n: Int) -> QDouble {
+    static public func nroot(_ a: QDouble, _ n: Int) -> QDouble {
         if n <= 0 {
-            Common.error("(Quad.nroot): N must be positive.")
+            Common.error("\(#function): N must be positive.")
             return nan
         }
         
         if n.isMultiple(of: 2) && a.isNegative {
-            Common.error("(Quad.nroot): Negative argument.")
+            Common.error("\(#function): Negative argument.")
             return nan
         }
         
-        if n == 1 {
-            return a
-        }
-        if n == 2 {
-            return sqrt(a)
-        }
-        if a.isZero {
-            return zero
-        }
+        if n == 1 { return a }
+        if n == 2 { return sqrt(a) }
+        if a.isZero { return zero }
         
         
         /* Note  a^{-1/n} = exp(-log(a)/n) */
@@ -1274,23 +917,23 @@ public struct QDouble {
         return 1.0 / x
     }
 
-    /** Compute exp by first reducing the size of *x* by noting that
-        `exp(kr + m * log(2)) = 2^m * exp(r)^k`
-        where *m* and *k* are integers.  By choosing *m* appropriately
-        we can make |kr| <= log(2) / 2 = 0.347.  Then *exp(r)* is
-        evaluated using the familiar Taylor series.  Reducing the
-        argument substantially speeds up the convergence.       */
+    /// Compute exp by first reducing the size of *x* by noting that
+    ///    `exp(kr + m * log(2)) = 2^m * exp(r)^k`
+    ///    where *m* and *k* are integers.  By choosing *m* appropriately
+    ///    we can make |kr| <= log(2) / 2 = 0.347.  Then *exp(r)* is
+    ///    evaluated using the familiar Taylor series.  Reducing the
+    ///    argument substantially speeds up the convergence.
     static public func exp(_ a: QDouble) -> QDouble  {
         let k = scalbn(1.0, 16)
         let invk = 1.0 / k
         
-        if a[0] <= -709 { return QDouble.zero }
-        if a[0] >=  709 { return QDouble.inf }
-        if a.isZero { return 1 }
-        if a.isOne  { return QDouble.e }
+        if a[0] <= -709 { return zero }
+        if a[0] >=  709 { return inf }
+        if a.isZero { return 1.0 }
+        if a.isOne  { return e }
         
-        let m = Foundation.floor(a[0] / log2[0] + 0.5)
-        let r = mul_pwr2(a - log2 * m, invk)
+        let m = Foundation.floor(a[0] / Log2[0] + 0.5)
+        let r = mul_pwr2(a - Log2 * m, invk)
         var s, p, t : QDouble
         let thresh = invk * eps
         
@@ -1342,7 +985,7 @@ public struct QDouble {
         if a.isOne { return zero }
         
         if a[0] <= 0.0 {
-            Common.error("(Quad.log): Non-positive argument.")
+            Common.error("\(#function): Non-positive argument.")
             return nan
         }
         
@@ -1424,12 +1067,12 @@ public struct QDouble {
         return s
     }
     
-    /** To compute *sin(x)*, we choose integers *a*, *b* so that
-            x = s + a π / 2 + b π / 1024
-        and |s| ≤ π / 2048.  Using a precomputed table of
-        sin(k π / 1024) and cos(k π / 1024), we can compute
-        sin(x) from sin(s) and cos(s).  This greatly increases the
-        convergence of the sine Taylor series.                          */
+    /// To compute *sin(x)*, we choose integers *a*, *b* so that
+    ///        x = s + a π / 2 + b π / 1024
+    ///    and |s| ≤ π / 2048.  Using a precomputed table of
+    ///    sin(k π / 1024) and cos(k π / 1024), we can compute
+    ///    sin(x) from sin(s) and cos(s).  This greatly increases the
+    ///    convergence of the sine Taylor series.
     static public func sin(_ a: QDouble) -> QDouble {
         if a.isZero { return a }
         
@@ -1447,12 +1090,12 @@ public struct QDouble {
         let absk = Swift.abs(k)
         
         if j < -2 || j > 2 {
-            Common.error("(Quad.sin): Cannot reduce modulo pi/2.")
+            Common.error("\(#function): Cannot reduce modulo pi/2.")
             return nan
         }
         
         if absk > 256 {
-            Common.error("(Quad.sin): Cannot reduce modulo pi/1024.")
+            Common.error("\(#function): Cannot reduce modulo pi/1024.")
             return nan
         }
         
@@ -1505,12 +1148,12 @@ public struct QDouble {
         let absk = Swift.abs(k)
         
         if j < -2 || j > 2 {
-            Common.error("(Quad.cos): Cannot reduce modulo pi/2.")
+            Common.error("\(#function): Cannot reduce modulo pi/2.")
             return nan
         }
         
         if absk > 256 {
-            Common.error("(Quad.cos): Cannot reduce modulo pi/1024.")
+            Common.error("\(#function): Cannot reduce modulo pi/1024.")
             return nan
         }
         
@@ -1546,9 +1189,7 @@ public struct QDouble {
     
     static public func sincos(_ a: QDouble) -> (s: QDouble, c: QDouble) {
         
-        if a.isZero {
-            return (a, 1)
-        }
+        if a.isZero { return (0.0, 1.0) }
         
         // approximately reduce by 2*pi
         let z = nint(a / twopi)
@@ -1563,13 +1204,13 @@ public struct QDouble {
         let k = Int(q)
         let absk = Swift.abs(k)
         
-        if Swift.abs(j) > 2 {
-            Common.error("(Quad.sincos): Cannot reduce modulo pi/2.")
+        if  j < -2 || j > 2  {
+            Common.error("\(#function): Cannot reduce modulo pi/2.")
             return (nan, nan)
         }
         
         if absk > 256 {
-            Common.error("(Quad.sincos): Cannot reduce modulo pi/1024.")
+            Common.error("\(#function): Cannot reduce modulo pi/1024.")
             return (nan, nan)
         }
         
@@ -1615,7 +1256,7 @@ public struct QDouble {
     }
     
     /// Single-argument arctangent.
-    static public func atan(_ a: QDouble) -> QDouble { return atan2(a, x: 1) }
+    static public func atan(_ a: QDouble) -> QDouble { atan2(a, x: 1) }
 
     /// Instead of using the Taylor series to compute
     ///    arctan, we instead use Newton's iteration to solve
@@ -1635,12 +1276,12 @@ public struct QDouble {
         if x.isZero {
             if y.isZero {
                 /* Both x and y is zero. */
-                Common.error("(Quad.atan2): Both arguments zero.")
+                Common.error("\(#function): Both arguments zero.")
                 return nan
             }
             return y.isPositive ? pi2 : -pi2
         } else if y.isZero {
-            return x.isPositive ?   0 :  pi
+            return x.isPositive ? 0.0 : pi
         }
         
         if x == y  { return y.isPositive ?   pi4 : -_3pi4 }
@@ -1685,7 +1326,7 @@ public struct QDouble {
         let absa = abs(a)
         
         if absa > 1.0 {
-            Common.error("(Quad.asin): Argument out of domain.")
+            Common.error("\(#function): Argument out of domain.")
             return nan
         }
         
@@ -1697,7 +1338,7 @@ public struct QDouble {
         let absa = abs(a)
         
         if absa > 1.0 {
-            Common.error("(Quad.acos): Argument out of domain.")
+            Common.error("\(#function): Argument out of domain.")
             return nan
         }
         
@@ -1767,7 +1408,7 @@ public struct QDouble {
     
     static public func acosh(_ a: QDouble) -> QDouble {
         if a < 1.0 {
-            Common.error("(Quad.acosh): Argument out of domain.")
+            Common.error("\(#function): Argument out of domain.")
             return nan
         }
         
@@ -1776,7 +1417,7 @@ public struct QDouble {
     
     static public func atanh(_ a: QDouble) -> QDouble {
         if abs(a) >= 1.0 {
-            Common.error("(Quad.atanh): Argument out of domain.")
+            Common.error("\(#function): Argument out of domain.")
             return nan
         }
         
@@ -1785,8 +1426,8 @@ public struct QDouble {
     
     static public func fmod(_ a: QDouble, b: QDouble) -> QDouble { a - b * trunc(a / b) }
     
-    /** Produce a random number by generating 31 bits at a time, using the *rand()*
-        random number generator.  Shift the bits, and repeat seven times. */
+    /// Produce a random number by generating 31 bits at a time, using the *rand()*
+    /// random number generator.  Shift the bits, and repeat seven times. */
     static public func qdrand() -> QDouble {
         let m_const = 4.6566128730773926e-10 /* = 2^{-31} */
         var m = m_const
@@ -1802,9 +1443,9 @@ public struct QDouble {
     }
 
 
-    /** Evaluates the given n-th degree polynomial at x.
-        The polynomial is given by the array in c of n+1 coefficients. */
-    static public func polyeval(_ c: [QDouble], n: Int, x: QDouble) -> QDouble {
+    /// Evaluates the given n-th degree polynomial at x.
+    /// The polynomial is given by the array in c of n+1 coefficients. */
+    static public func polyeval(_ c: [QDouble], _ n: Int, _ x: QDouble) -> QDouble {
         /** Just use Horner's method of polynomial evaluation. */
         var r = c[n]
         
@@ -1816,10 +1457,10 @@ public struct QDouble {
         return r
     }
     
-    /** Given an n-th degree polynomial, finds a root close to
-    the given guess x0.  Note that this uses simple Newton
-    iteration scheme, and does not work for multiple roots.  */
-    static public func polyroot(_ c: [QDouble], n: Int, x: QDouble, max_iter: Int = 64, thresh: Double = 0.0) -> QDouble {
+    /// Given an n-th degree polynomial, finds a root close to
+    /// the given guess x0.  Note that this uses simple Newton
+    /// iteration scheme, and does not work for multiple roots.  */
+    static public func polyroot(_ c: [QDouble], _ n: Int, _ x: QDouble, _ max_iter: Int = 64, _ thresh: Double = 0.0) -> QDouble {
         var thresh = thresh
         var x = x
         var f: QDouble
@@ -1841,17 +1482,17 @@ public struct QDouble {
         
         /* Newton iteration. */
         for _ in 0..<max_iter {
-            f = polyeval(c, n: n, x: x)
+            f = polyeval(c, n, x)
             
             if abs(f) < QDouble(thresh) {
                 conv = true
                 break
             }
-            x -= (f / polyeval(d, n: n-1, x: x))
+            x -= (f / polyeval(d, n-1, x))
         }
         
         if !conv {
-            Common.error("(Quad.polyroot): Failed to converge.")
+            Common.error("\(#function): Failed to converge.")
             return nan
         }
         
@@ -1902,8 +1543,8 @@ public struct QDouble {
     public func inv() -> QDouble   { QDouble.inv(self) }
     public func string() -> String { self.description }
     
-    public func polyroot(_ c: [QDouble], n: Int) -> QDouble { QDouble.polyroot(c, n: n, x: self) }
-    public func polyeval(_ c: [QDouble], n: Int) -> QDouble { QDouble.polyeval(c, n: n, x: self) }
+//    public func polyroot(_ c: [QDouble], n: Int) -> QDouble { QDouble.polyroot(c, n: n, x: self) }
+//    public func polyeval(_ c: [QDouble], n: Int) -> QDouble { QDouble.polyeval(c, n: n, x: self) }
 
     // MARK: - Internal precalculated values
     /** Table of inverse factorials */
@@ -2458,39 +2099,40 @@ precedencegroup ExponentPrecedence {
 extension QDouble {
     
     // MARK: - Quad-based Operator Definitions
-//    static public func + (a: QDouble, b: QDouble) -> QDouble   { QDouble.add(a, b) }
-//    static public func + (a: QDouble, b: Double) -> QDouble { QDouble.add(a, b) }
-//    static public func + (a: Double, b: QDouble) -> QDouble { b + a }
-    static public func += (a: inout QDouble, b: QDouble)    { a = a + b }
-    static public func += (a: inout QDouble, b: Double)     { a = a + b }
+    @inlinable static public func += (a: inout QDouble, b: QDouble)     { a = a + b }
+    @inlinable public static func += (_ a: inout QDouble, _ b: Double)  { a = a + b }
+    @inlinable public static func += (_ a: inout QDouble, _ b: DDouble) { a = a + b }
     
-    static public func - (a: QDouble, b: QDouble) -> QDouble { a + (-b) }
-    static public func - (a: QDouble, b: Double) -> QDouble { a + (-b) }
-    static public func - (a: Double, b: QDouble) -> QDouble { a + (-b) }
-    static public func -= (a: inout QDouble, b: QDouble)    { a = a - b }
-    static public func -= (a: inout QDouble, b: Double)     { a = a - b }
+    @inlinable static public func - (a: QDouble, b: QDouble) -> QDouble { a + (-b) }
+    @inlinable static public func - (a: QDouble, b: Double) -> QDouble  { a + (-b) }
+    @inlinable static public func - (a: QDouble, b: DDouble) -> QDouble { a + (-b) }
+    @inlinable static public func - (a: DDouble, b: QDouble) -> QDouble { a + (-b) }
+    @inlinable static public func - (a: Double, b: QDouble) -> QDouble  { a + (-b) }
+    @inlinable static public func -= (a: inout QDouble, b: QDouble)     { a += (-b) }
+    @inlinable static public func -= (a: inout QDouble, b: Double)      { a += (-b) }
+    @inlinable static public func -= (a: inout QDouble, b: DDouble)     { a += (-b) }
     
-    static public func * (a: QDouble, b: QDouble) -> QDouble   { QDouble.mul(a, b) }
-    static public func * (a: QDouble, b: Double) -> QDouble { QDouble.mul(a, b) }
-    static public func * (a: Double, b: QDouble) -> QDouble { b * a }
-    static public func *= (a: inout QDouble, b: QDouble)    { a = a * b }
-    static public func *= (a: inout QDouble, b: Double)  { a = a * b }
+    @inlinable static public func * (a: Double, b: QDouble) -> QDouble  { b * a }
+    @inlinable static public func * (a: DDouble, b: QDouble) -> QDouble { b * a }
+    @inlinable static public func *= (a: inout QDouble, b: QDouble)     { a = a * b }
+    @inlinable static public func *= (a: inout QDouble, b: Double)      { a = a * b }
+    @inlinable static public func *= (a: inout QDouble, b: DDouble)     { a = a * b }
     
-//    static public func / (a: QDouble, b: QDouble) -> QDouble   { QDouble.div(a, b) }
-    static public func / (a: Double, b: QDouble) -> QDouble { QDouble(a) / b }
-//    static public func / (a: QDouble, b: Double) -> QDouble { QDouble.div(a, b) }
-    static public func /= (a: inout QDouble, b: QDouble)    { a = a / b }
-    static public func /= (a: inout QDouble, b: Double)  { a = a / b }
+    @inlinable static public func / (a: Double, b: QDouble) -> QDouble { QDouble(a) / b }
+    @inlinable static public func / (a: DDouble, b: QDouble) -> QDouble { QDouble(a) / b }
+    @inlinable static public func /= (a: inout QDouble, b: QDouble)  { a = a / b }
+    @inlinable static public func /= (a: inout QDouble, b: Double)   { a = a / b }
+    @inlinable static public func /= (a: inout QDouble, b: DDouble)  { a = a / b }
     
     /********** Unary Minus **********/
-    static public prefix func - (x: QDouble) -> QDouble { QDouble(-x.x) }
+    @inlinable static public prefix func - (x: QDouble) -> QDouble { QDouble(-x[0], -x[1], -x[2], -x[3]) }
     
     /********** Exponentiation **********/
 
-    static public func ** (base: QDouble, power: Int) -> QDouble  { Common.pow(base, power) }
-    static public func ** (base: QDouble, power: QDouble) -> QDouble { QDouble.pow(base, power) }
+    @inlinable static public func ** (base: QDouble, power: Int) -> QDouble  { Common.pow(base, power) }
+    @inlinable static public func ** (base: QDouble, power: QDouble) -> QDouble { QDouble.pow(base, power) }
 
-    static public func abs(_ a: QDouble) -> QDouble { a[0] < 0.0 ? -a : a }
+    @inlinable static public func abs(_ a: QDouble) -> QDouble { a[0] < 0.0 ? -a : a }
 }
 
 extension QDouble : ExpressibleByStringLiteral {
@@ -2547,14 +2189,24 @@ extension QDouble : Strideable {
 extension QDouble : FloatingPoint {
     
     public mutating func round(_ rule: FloatingPointRoundingRule) {
+        let floorValue   = QDouble.floor(self)
+        let ceilingValue = QDouble.ceil(self)
+        let halfway = (self - floorValue) == 0.5
         switch rule {
-            case .awayFromZero: break;
-            case .down: break;
-            case .toNearestOrAwayFromZero: self = QDouble.nint(self) // normal rounding
-            case .toNearestOrEven: break;
-            case .up: break;
-            case .towardZero: self = QDouble.trunc(self)  // aka truncate
-            @unknown default: assertionFailure("QDouble: Unknown rounding rule \(rule)")
+            case .awayFromZero:
+                self = ceilingValue
+            case .down:
+                self = (self - floorValue) > 0.5 ? floorValue+1.0 : floorValue
+            case .toNearestOrAwayFromZero:
+                self = halfway ? ceilingValue : QDouble.nint(self)
+            case .toNearestOrEven:
+                self = QDouble.nint(self) // normal rounding
+            case .up:
+                self = QDouble.floor(self+0.5)
+            case .towardZero:
+                self = floorValue  // aka truncate
+            @unknown default:
+                assertionFailure("QDouble: Unknown rounding rule \(rule)")
         }
     }
     
@@ -2567,9 +2219,7 @@ extension QDouble : FloatingPoint {
     public static var infinity: QDouble { QDouble.inf }
     public static var greatestFiniteMagnitude: QDouble { QDouble.max }
     
-    public var ulp: QDouble {
-        0 // TBD
-    }
+    public var ulp: QDouble { QDouble.eps * self }
     
     public static var leastNormalMagnitude: QDouble { QDouble(_min_normalized) }
     public static var leastNonzeroMagnitude: QDouble { QDouble(eps) }
@@ -2605,7 +2255,7 @@ extension QDouble : FloatingPoint {
     
     public init(sign: FloatingPointSign, exponent: Int, significand: QDouble) {
         let n = sign == .minus ? -1.0 : 1.0
-        self = n * significand * 2 ** exponent
+        self = n * significand * QDouble(2.0) ** exponent
     }
     
     public init(signOf s: QDouble, magnitudeOf m: QDouble) {

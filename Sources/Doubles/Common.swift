@@ -7,7 +7,7 @@
 
 import Foundation
 
-protocol FP:FloatingPoint {
+public protocol FP:FloatingPoint {
     static func log10(_ a:Self) -> Self
     static func ldexp(_ a:Self, _ e:Int) -> Self
     static func abs(_ a:Self) -> Self
@@ -16,10 +16,74 @@ protocol FP:FloatingPoint {
     var double:Double { get }
 }
 
+extension FP {
+    
+    @inlinable public static func two_sum(_ a:Double, _ b:Double, _ err: inout Double) -> Double {
+      let s = a + b
+      let bb = s - a
+      err = (a - (s - bb)) + (b - bb)
+      return s
+    }
+    
+    /* Computes fl(a-b) and err(a-b).  */
+    @inlinable static func two_diff(_ a:Double, _ b:Double, _ err: inout Double) -> Double {
+      let s = a - b
+      let bb = s - a
+      err = (a - (s - bb)) - (b + bb)
+      return s
+    }
+    
+    /* Computes fl(a+b) and err(a+b).  Assumes |a| >= |b|. */
+    @inlinable static func quick_two_sum(_ a:Double, _ b:Double, _ err: inout Double) -> Double {
+      let s = a + b
+      err = b - (s - a)
+      return s
+    }
+        
+    /* Computes high word and lo word of a */
+    @inlinable static func split(_ a:Double) -> (h: Double, l: Double) {
+        let _QD_SPLITTER = 134217729.0               // = 2^27 + 1
+        let _QD_SPLIT_THRESH = 6.69692879491417e+299 // = 2^996
+        if (a > _QD_SPLIT_THRESH || a < -_QD_SPLIT_THRESH) {
+            let a2 = a*3.7252902984619140625e-09;  // 2^-28
+            let temp = _QD_SPLITTER * a2;
+            let hi = temp - (temp - a2);
+            let lo = a2 - hi;
+            return (h: hi * 268435456.0, l: lo * 268435456.0)
+        } else {
+            let temp = _QD_SPLITTER * a
+            let hi = temp - (temp - a)
+            return (h: hi, l: a - hi)
+        }
+    }
+    
+    /* Computes fl(a*b) and err(a*b). */
+    @inlinable static func two_prod(_ a:Double, _ b:Double, _ err: inout Double) -> Double {
+        let p = a * b;
+        let (ah, al) = split(a)
+        let (bh, bl) = split(b)
+        err = ((ah * bh - p) + ah * bl + al * bh) + al * bl
+        return p
+    }
+    
+    /** Computes fl(a*a) and err(a*a).  Faster than the above method. */
+    @inlinable static func two_sqr(_ a: Double, _ err: inout Double) -> Double {
+        let q = a * a
+        let (hi, lo) = split(a)
+        err = ((hi * hi - q) + 2.0 * hi * lo) + lo * lo
+        return q
+    }
+    
+    /** Computes the nearest integer to d. */
+    @inlinable static func nint(_ d: Double) -> Double { d == Foundation.floor(d) ? d : Foundation.floor(d + 0.5) }
+    @inlinable static func trunc(_ a:Self) -> Self { a.double >= 0 ? floor(a) : ceil(a) }
+    
+}
+
 extension DDouble:FP {}
 extension QDouble:FP {}
 
-struct Common {
+public struct Common {
     
     static func error(_ msg: String) { print("ERROR " + msg) }
     
@@ -156,7 +220,7 @@ struct Common {
             e -= 1
         }
         
-        if r >= ten || r < one { Common.error("(Quad.to_digits): can't compute exponent."); return }
+        if r >= ten || r < one { Common.error("\(#function): can't compute exponent."); return }
         
         /* Extract the digits */
         for _ in 0..<D {
@@ -177,7 +241,7 @@ struct Common {
             }
         }
         
-        if s[0] < "0" { Common.error("(Quad.to_digits): non-positive leading digit."); return }
+        if s[0] < "0" { Common.error("\(#function): non-positive leading digit."); return }
         
         /* Round, handle carry */
         if s[D-1] >= "5" {
@@ -359,7 +423,7 @@ struct Common {
                     from_string = atof(s)
                     // if this ratio is large, then the string has not been fixed
                     if fabs( from_string / a.double ) > 3.0 {
-                        Common.error("Re-rounding unsuccessful in large number fixed point trap.")
+                        Common.error("\(#function): Re-rounding unsuccessful in large number fixed point trap.")
                     }
                 }
             }

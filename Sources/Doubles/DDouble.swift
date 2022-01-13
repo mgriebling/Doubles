@@ -30,7 +30,7 @@ public struct DDouble {
         if let q : DDouble = Common.toFloat(s) {
             x = q.x
         } else {
-            Common.error("(Quad.init): STRING CONVERT ERROR.")
+            Common.error("\(#function): STRING CONVERT ERROR.")
             x = DDouble.nan.x
         }
     }
@@ -103,44 +103,32 @@ public struct DDouble {
     public var int: Int { Int(x[0]) }
     
     /// Internal constants
-    static private var _2pi = DDouble(6.283185307179586232e+00, 2.449293598294706414e-16);
-    static private var _pi = DDouble(3.141592653589793116e+00, 1.224646799147353207e-16);
-    static private var _pi2 = DDouble(1.570796326794896558e+00, 6.123233995736766036e-17);
-    static private var _pi4 = DDouble(7.853981633974482790e-01, 3.061616997868383018e-17);
-    static private var _3pi4 = DDouble(2.356194490192344837e+00, 9.1848509936051484375e-17);
-    static private var _e = DDouble(2.718281828459045091e+00, 1.445646891729250158e-16);
-    static private var _log2 = DDouble(6.931471805599452862e-01, 2.319046813846299558e-17);
-    static public  var Log10 = DDouble(2.302585092994045901e+00, -2.170756223382249351e-16);
-    static private var _nan = DDouble(Double.nan, Double.nan)
-    static private var _snan = DDouble(Double.signalingNaN, Double.signalingNaN)
-    static private var _inf = DDouble(Double.infinity, Double.infinity)
+    static private let _2pi = DDouble(6.283185307179586232e+00, 2.449293598294706414e-16);
+    static private let _pi = DDouble(3.141592653589793116e+00, 1.224646799147353207e-16);
+    static private let _pi2 = DDouble(1.570796326794896558e+00, 6.123233995736766036e-17);
+    static private let _pi4 = DDouble(7.853981633974482790e-01, 3.061616997868383018e-17);
+    static private let _3pi4 = DDouble(2.356194490192344837e+00, 9.1848509936051484375e-17);
+    static private let _e = DDouble(2.718281828459045091e+00, 1.445646891729250158e-16);
+    static public  let Log2 = DDouble(6.931471805599452862e-01, 2.319046813846299558e-17);
+    static public  let Log10 = DDouble(2.302585092994045901e+00, -2.170756223382249351e-16);
+    static private let _nan = DDouble(Double.nan, Double.nan)
+    static private let _snan = DDouble(Double.signalingNaN, Double.signalingNaN)
+    static private let _inf = DDouble(Double.infinity, Double.infinity)
 
-    static private var _eps = 4.93038065763132e-32;  // 2^-104
-    static private var _min_normalized = 2.0041683600089728e-292;  // = 2^(-1022 + 53)
-    static private var _max = DDouble(1.79769313486231570815e+308, 9.97920154767359795037e+291);
-    static private var _safe_max = DDouble(1.7976931080746007281e+308, 9.97920154767359795037e+291);
-    static private var _ndigits = 31
+    static private let _eps = 4.93038065763132e-32;  // 2^-104
+    static private let _min_normalized = 2.0041683600089728e-292;  // = 2^(-1022 + 53)
+    static private let _max = DDouble(1.79769313486231570815e+308, 9.97920154767359795037e+291);
+    static private let _safe_max = DDouble(1.7976931080746007281e+308, 9.97920154767359795037e+291);
+    static private let _ndigits = 31
+    
+    static public let eps = _eps
+    static public let e = _e
+    static public let max = _max
     
     /// Base 10 digits
     static public var digits:Int { _ndigits }
     
     /// Functions
-
-    /* Computes fl(a+b) and err(a+b).  */
-    static func two_sum(_ a:Double, _ b:Double, _ err: inout Double) -> Double {
-      let s = a + b
-      let bb = s - a
-      err = (a - (s - bb)) + (b - bb)
-      return s
-    }
-    
-    /* Computes fl(a-b) and err(a-b).  */
-    static func two_diff(_ a:Double, _ b:Double, _ err: inout Double) -> Double {
-      let s = a - b
-      let bb = s - a
-      err = (a - (s - bb)) - (b + bb)
-      return s
-    }
     
     /* Computes fl(a*a) and err(a*a).  Faster than the above method. */
     static func two_sqr(_ a:Double, _ err:inout Double) -> Double {
@@ -185,46 +173,9 @@ public struct DDouble {
     }
     
     /* double-double * (2.0 ^ exp) */
-    static func ldexp(_ a:DDouble, _ exp:Int) -> DDouble { DDouble(Foundation.scalbn(a.x[0], exp), Foundation.scalbn(a.x[1], exp)) }
+    public static func ldexp(_ a:DDouble, _ exp:Int) -> DDouble { DDouble(Foundation.scalbn(a.x[0], exp), Foundation.scalbn(a.x[1], exp)) }
     static func sqr(_ t:Double) -> Double { t * t }
-    
-    static let _QD_SPLITTER = 134217729.0               // = 2^27 + 1
-    static let _QD_SPLIT_THRESH = 6.69692879491417e+299 // = 2^996
-    
-    /* Computes high word and lo word of a */
-    static func split(_ a:Double) -> (h: Double, l: Double) {
-        if (a > _QD_SPLIT_THRESH || a < -_QD_SPLIT_THRESH) {
-            let a2 = a*3.7252902984619140625e-09;  // 2^-28
-            let temp = _QD_SPLITTER * a2;
-            let hi = temp - (temp - a2);
-            let lo = a2 - hi;
-            return (h: hi * 268435456.0, l: lo * 268435456.0)
-        } else {
-            let temp = _QD_SPLITTER * a
-            let hi = temp - (temp - a)
-            return (h: hi, l: a - hi)
-        }
-    }
-    
-    /* Computes fl(a*b) and err(a*b). */
-    static func two_prod(_ a:Double, _ b:Double, _ err: inout Double) -> Double {
-        let p = a * b;
-        if QD_FMS {
-            err = 0 // QD_FMS(a, b, p)
-        } else {
-            let ai = split(a)
-            let bi = split(b)
-            err = ((ai.h * bi.h - p) + ai.h * bi.l + ai.l * bi.h) + ai.l * bi.l
-        }
-        return p
-    }
-    
-    /* Computes fl(a+b) and err(a+b).  Assumes |a| >= |b|. */
-    static func quick_two_sum(_ a:Double, _ b:Double, _ err: inout Double) -> Double {
-      let s = a + b
-      err = b - (s - a)
-      return s
-    }
+
     
     static func add(_ a:Double, _ b:Double) -> DDouble {
         var e = 0.0
@@ -448,38 +399,6 @@ public struct DDouble {
     public static func /= (_ x: inout DDouble, _ a:Double)  { x = x / a }
     
     /********** Exponentiation **********/
-    /* Computes the n-th power of a double-double number.
-       NOTE:  0^0 causes an error.                         */
-//    static func npwr(_ a:DDouble, _ n:Int) -> DDouble { Common.pow(a, n) }
-//        if n == 0 {
-//            if a.isZero {
-//                Common.error("(DDouble::npwr): Invalid argument.");
-//                return DDouble._nan
-//            }
-//            return DDouble(1.0)
-//        }
-//
-//        var r = a
-//        var s = DDouble(1.0)
-//        var N = Foundation.abs(Int32(n))
-//
-//        if N > 1 {
-//            /* Use binary exponentiation */
-//            while N > 0 {
-//                if N % 2 == 1 {
-//                    s *= r;
-//                }
-//                N /= 2;
-//                if N > 0 { r = DDouble.sqr(r) }
-//            }
-//        } else {
-//            s = r
-//        }
-//
-//        /* Compute the reciprocal if n is negative. */
-//        return (n < 0) ? (1.0 / s) : s
-//    }
-
     static public func pow (_ a: DDouble, _ b: DDouble) -> DDouble { exp(b * log(a)) }
     
     /// Power function a ** n
@@ -682,7 +601,7 @@ extension DDouble : FloatingPoint {
         if a.isZero { return 0.0 }
         
         if a.isNegative {
-            Common.error("(DDouble.sqrt): Negative argument.")
+            Common.error("\(#function): Negative argument.")
             return _nan
         }
         
@@ -711,12 +630,12 @@ extension DDouble : FloatingPoint {
          a^{1/n} by taking the reciprocal.
          */
         guard n>=0 else {
-            Common.error("(DDouble.nroot): N must be positive.")
+            Common.error("\(#function): N must be positive.")
             return _nan
         }
         
         guard !(n.isMultiple(of: 2) && a.isNegative) else {
-            Common.error("(DDouble.nroot): Negative argument.");
+            Common.error("(\(#function): Negative argument.");
             return _nan
         }
         
@@ -752,8 +671,8 @@ extension DDouble : FloatingPoint {
         if a.isZero { return 1.0 }
         if a.isOne { return _e }
         
-        let m = Foundation.floor(a.x[0] / _log2.x[0] + 0.5)
-        let r = mul_pwr2(a - _log2 * m, inv_k)
+        let m = Foundation.floor(a.x[0] / Log2.x[0] + 0.5)
+        let r = mul_pwr2(a - Log2 * m, inv_k)
         
         var p = sqr(r);
         var s = r + mul_pwr2(p, 0.5);
@@ -805,7 +724,7 @@ extension DDouble : FloatingPoint {
         if a.isOne { return 0.0 }
         
         if a.x[0] <= 0.0 {
-            Common.error("(DDouble.log): Non-positive argument.")
+            Common.error("\(#function): Non-positive argument.")
             return _nan
         }
         
@@ -889,12 +808,12 @@ extension DDouble : FloatingPoint {
         let abs_k = Swift.abs(k)
         
         if (j < -2 || j > 2) {
-            Common.error("(DDouble.sin): Cannot reduce modulo pi/2.")
+            Common.error("\(#function): Cannot reduce modulo pi/2.")
             return _nan
         }
         
         if (abs_k > 4) {
-            Common.error("(DDouble.sin): Cannot reduce modulo pi/16.")
+            Common.error("\(#function): Cannot reduce modulo pi/16.")
             return _nan
         }
         
@@ -955,12 +874,12 @@ extension DDouble : FloatingPoint {
         let abs_k = Swift.abs(k)
         
         if (j < -2 || j > 2) {
-            Common.error("(DDouble.cos): Cannot reduce modulo pi/2.")
+            Common.error("\(#function): Cannot reduce modulo pi/2.")
             return _nan
         }
         
         if (abs_k > 4) {
-            Common.error("(DDouble.cos): Cannot reduce modulo pi/16.")
+            Common.error("\(#function): Cannot reduce modulo pi/16.")
             return _nan
         }
         
@@ -1023,12 +942,12 @@ extension DDouble : FloatingPoint {
         let abs_k = Swift.abs(k)
         
         if abs_j > 2 {
-            Common.error("(DDouble.sincos): Cannot reduce modulo pi/2.")
+            Common.error("\(#function): Cannot reduce modulo pi/2.")
             return (_nan, _nan)
         }
         
         if abs_k > 4 {
-            Common.error("(DDouble.sincos): Cannot reduce modulo pi/16.")
+            Common.error("\(#function): Cannot reduce modulo pi/16.")
             return (_nan, _nan)
         }
         
@@ -1078,7 +997,7 @@ extension DDouble : FloatingPoint {
         if x.isZero {
             if y.isZero {
                 /* Both x and y are zero. */
-                Common.error("(DDouble.atan2): Both arguments zero.");
+                Common.error("\(#function): Both arguments zero.");
                 return _nan
             }
             return y.isPositive ? _pi2 : -_pi2
@@ -1120,7 +1039,7 @@ extension DDouble : FloatingPoint {
         let abs_a = abs(a);
         
         if abs_a > 1.0 {
-            Common.error("(DDouble.asin): Argument out of domain.");
+            Common.error("\(#function): Argument out of domain.");
             return _nan;
         }
         
@@ -1135,7 +1054,7 @@ extension DDouble : FloatingPoint {
         let abs_a = abs(a);
         
         if abs_a > 1.0 {
-            Common.error("(DDouble.acos): Argument out of domain.");
+            Common.error("\(#function): Argument out of domain.");
             return _nan;
         }
         
@@ -1210,7 +1129,7 @@ extension DDouble : FloatingPoint {
 
     static public func acosh(_ a: DDouble) -> DDouble {
         if a < 1.0 {
-            Common.error("(DDouble.acosh): Argument out of domain.")
+            Common.error("\(#function): Argument out of domain.")
             return _nan
         }
         return log(a + sqrt(sqr(a) - 1.0))
@@ -1218,7 +1137,7 @@ extension DDouble : FloatingPoint {
 
     static public func atanh(_ a: DDouble) -> DDouble {
         if abs(a) >= 1.0 {
-            Common.error("(dd_real::atanh): Argument out of domain.")
+            Common.error("\(#function): Argument out of domain.")
             return _nan
         }
         return mul_pwr2(log((1.0 + a) / (1.0 - a)), 0.5)
@@ -1265,7 +1184,7 @@ extension DDouble : FloatingPoint {
        Given an n-th degree polynomial, finds a root close to
        the given guess x0.  Note that this uses simple Newton
        iteration scheme, and does not work for multiple roots.  */
-    static public func polyroot(_ c:[DDouble], _ n:Int, _ x0:DDouble, _ max_iter:Int, _ thresh:Double) -> DDouble {
+    static public func polyroot(_ c:[DDouble], _ n:Int, _ x0:DDouble, _ max_iter:Int=32, _ thresh:Double=0.0) -> DDouble {
         var x = x0
         var d = [DDouble](repeating: 0, count: n)
         var conv = false;
@@ -1292,7 +1211,7 @@ extension DDouble : FloatingPoint {
             x -= (f / polyeval(d, n-1, x))
         }
         if !conv {
-            Common.error("(DDouble.polyroot): Failed to converge.")
+            Common.error("\(#function): Failed to converge.")
             return _nan
         }
         return x
