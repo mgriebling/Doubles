@@ -54,11 +54,11 @@ sqrt(0.1)^2 = 1.00000000000000000000000000000000000000000000000000000000000000e-
 Comparison operations: 1.23456789012345678901234567890123456789012345678901234567890120e+61 == 1.2345678901234568e+29 -> false
 ```
 
+# Swift Benchmarks
+
 Following are some benchmarks from a 3.6GHz 10-Core Intel Core i9:
 
-#Swift Benchmarks
-
-##Timing Double
+## Timing Double
 
 Operation | Time         |  MOPs
 ---------:|-------------:|--------------:
@@ -73,7 +73,7 @@ Operation | Time         |  MOPs
    cos:   | 0.030750 μs  |   32.5203 mop/s
 
 
-##Timing DDouble
+## Timing DDouble
 
 Operation | Time         |  MOPs
 ---------:|-------------:|--------------:
@@ -87,7 +87,7 @@ Operation | Time         |  MOPs
    exp:   | 0.368000 μs  |   2.7174 mop/s 
    cos:   | 0.460750 μs  |   2.1704 mop/s
 
-##Timing QDouble
+## Timing QDouble
 
 Operation | Time         |  MOPs
 ---------:|-------------:|--------------:
@@ -101,9 +101,9 @@ Operation | Time         |  MOPs
    exp:   | 3.253000 μs  |   0.3074 mop/s 
    cos:   | 5.614750 μs  |   0.1781 mop/s
 
-#C++ Benchmarks
+# C++ Benchmarks
 
-##Timing double
+## Timing double
 
 Operation | Time         |  MOPs
 ---------:|-------------:|--------------:
@@ -117,7 +117,7 @@ Operation | Time         |  MOPs
    exp:   | 0.005000 us |  200.0000 mop/s
    cos:   | 0.007500 us |  133.3333 mop/s
 
-##Timing dd_real
+## Timing dd_real
 
 Operation | Time         |  MOPs
 ---------:|-------------:|--------------:
@@ -131,7 +131,7 @@ Operation | Time         |  MOPs
    exp:   | 0.251000 us  |   3.9841 mop/s
    cos:   | 0.254000 us  |   3.9370 mop/s
 
-##Timing qd_real
+## Timing qd_real
 
 Operation | Time         |  MOPs
 ---------:|-------------:|--------------:
