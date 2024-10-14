@@ -1,3 +1,7 @@
+[![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fmgriebling%2FDoubles%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/mgriebling/Doubles)
+
+[![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fmgriebling%2FDoubles%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/mgriebling/Doubles)
+
 # Doubles
 
 A quad-double number (QDouble) is an unevaluated sum of four IEEE double-precision numbers, capable of representing at least 212 bits or 62 digits of significand.
