@@ -1125,7 +1125,7 @@ public struct QDouble {
     }
 
     /// Compute *cos(x)*.
-    /// - Reference: `sin(x)`
+	/// - Reference: ``sin(_:)``
     static public func cos(_ a: QDouble) -> QDouble {
         
         if a.isZero { return 1 }

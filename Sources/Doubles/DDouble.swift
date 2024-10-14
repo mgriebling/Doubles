@@ -416,7 +416,7 @@ precedencegroup ExponentPrecedence {
 }
 
 extension DDouble : Comparable {
-    /// MARK: - Equality Comparisons
+    // MARK: - Equality Comparisons
     public static func == (_ a:DDouble,_ b:Double) -> Bool  { a.x[0] == b && a.x[1] == 0.0 }
     public static func == (_ a:DDouble,_ b:DDouble) -> Bool { a.x[0] == b.x[0] && a.x[1] == b.x[1] }
     public static func == (_ a:Double, _ b:DDouble) -> Bool { a == b.x[0] && b.x[1] == 0.0 }
@@ -589,9 +589,9 @@ extension DDouble : FloatingPoint {
     }
     
     /// Computes the square root of the double-double number *a*.
-    ///   NOTE: *a* must be a non-negative number.
+    /// > **Note**: *a* must be a non-negative number.
     ///
-    /// Strategy:  Use Karp's trick:  if x is an approximation
+    /// - Strategy:  Use Karp's trick:  if x is an approximation
     /// to sqrt(a), then
     ///
     /// sqrt(a) = a*x + [a - (a*x)^2] * x / 2   (approx)
@@ -613,24 +613,24 @@ extension DDouble : FloatingPoint {
     }
     
     /// Computes the square root of a double in double-double precision.
-    /// NOTE: d must not be negative.                                   */
+    /// > Note: d must not be negative.
     public static func sqrt(_ a:Double) -> DDouble { sqrt(DDouble(a)) }
     
     /// Computes the n-th root of the double-double number a.
-    ///   NOTE: n must be a positive integer.
-    ///   NOTE: If n is even, then a must not be negative.
+    ///   > Note: n must be a positive integer.
+    ///   >       If n is even, then a must not be negative.
+	/** Strategy:  Use Newton iteration for the function
+			(x) = x^(-n) - a
+ 
+		to find its root a^{-1/n}.  The iteration is thus
+ 
+			x' = x + x * (1 - a * x^n) / n
+ 
+		which converges quadratically.  We can then find
+		a^{1/n} by taking the reciprocal.
+	 */
     public static func nroot(_ a:DDouble, _ n:Int) -> DDouble {
-        /* Strategy:  Use Newton iteration for the function
-         
-         f(x) = x^(-n) - a
-         
-         to find its root a^{-1/n}.  The iteration is thus
-         
-         x' = x + x * (1 - a * x^n) / n
-         
-         which converges quadratically.  We can then find
-         a^{1/n} by taking the reciprocal.
-         */
+
         guard n>=0 else {
             Common.error("\(#function): N must be positive.")
             return _nan
