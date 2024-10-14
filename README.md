@@ -8,15 +8,21 @@ A Swift implementation of these algorithms is attached, along with its interface
 
 If anyone can speed up the Swift benchmarks to match the C++ benchmarks (see original package https://www.davidhbailey.com/dhbsoftware/qd-2.3.23.tar.gz), that would also be appreciated.
 I spent some time looking at doing this without much success.  I suspect some intrinsic overhead with type-checking or other safety-related mechanism that C++ doesn't have.
-Too bad these checks can't be turned off in performance-critical code.  I know some people have success in 
+Too bad these checks can't be turned off in performance-critical code.
 
 Translated to Swift from an original work called qd-2.3.15 by Yozo Hida, Xiaoye S. Li, and David H. Bailey
 Bug fixes incorporated from qd-2.3.22 - MG - 24 Mar 2019.
 
-Note: Source code was translated from an original work that is:
-Copyright (c) 2003-2009, The Regents of the University of California,
-through Lawrence Berkeley National Laboratory (subject to receipt of
-any required approvals from U.S. Dept. of Energy) All rights reserved. 
+Its documentation is built with the DocC plugin and published on GitHub Pages at this location:
+
+https://mgriebling.github.io/Doubles/documentation/doubles
+
+The documentation is also available in the *Doubles.doccarchive* file.
+
+> Note: Source code was translated from an original work that is:
+> Copyright (c) 2003-2009, The Regents of the University of California,
+> through Lawrence Berkeley National Laboratory (subject to receipt of
+> any required approvals from U.S. Dept. of Energy) All rights reserved. 
 
 # Swift Examples
 
