@@ -25,7 +25,7 @@ extension FP {
       return s
     }
     
-    /* Computes fl(a-b) and err(a-b).  */
+    /// Computes fl(a-b) and err(a-b).
     @inlinable static func two_diff(_ a:Double, _ b:Double, _ err: inout Double) -> Double {
       let s = a - b
       let bb = s - a
@@ -33,14 +33,14 @@ extension FP {
       return s
     }
     
-    /* Computes fl(a+b) and err(a+b).  Assumes |a| >= |b|. */
+    /** Computes fl(a+b) and err(a+b).  Assumes |a| >= |b|. */
     @inlinable static func quick_two_sum(_ a:Double, _ b:Double, _ err: inout Double) -> Double {
       let s = a + b
       err = b - (s - a)
       return s
     }
         
-    /* Computes high word and lo word of a */
+    /** Computes high word and lo word of a */
     @inlinable static func split(_ a:Double) -> (h: Double, l: Double) {
         let _QD_SPLITTER = 134217729.0               // = 2^27 + 1
         let _QD_SPLIT_THRESH = 6.69692879491417e+299 // = 2^996
@@ -57,7 +57,7 @@ extension FP {
         }
     }
     
-    /* Computes fl(a*b) and err(a*b). */
+    /** Computes fl(a*b) and err(a*b). */
     @inlinable static func two_prod(_ a:Double, _ b:Double, _ err: inout Double) -> Double {
         let p = a * b;
         let (ah, al) = split(a)

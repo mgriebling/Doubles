@@ -1,30 +1,33 @@
 import Foundation
 
-///  Translated to Swift from an original work called qd-2.3.15
-///  by Yozo Hida, Xiaoye S. Li, and David H. Bailey
-///  Bug fixes incorporated from qd-2.3.23 - MG - 24 Mar 2019.
+//  Translated to Swift from an original work called qd-2.3.15
+//  by Yozo Hida, Xiaoye S. Li, and David H. Bailey
+//  Bug fixes incorporated from qd-2.3.23 - MG - 24 Mar 2019.
+//
+//  Created by Mike Griebling on 30 Jun 2015.
+//  Copyright (c) 2015-2022 Computer Inspirations. All rights reserved.
+//
+// (Original) work was supported by the Director, Office of Science, Division
+// of Mathematical, Information, and Computational Sciences of the
+// U.S. Department of Energy under contract number DE-AC03-76SF00098.
+
+/// Double-precision Double (aka Double-Double) floating point implementation.
 ///
-///  Created by Mike Griebling on 30 Jun 2015.
-///  Copyright (c) 2015-2022 Computer Inspirations. All rights reserved.
-///
-/// (Original) work was supported by the Director, Office of Science, Division
-/// of Mathematical, Information, and Computational Sciences of the
-/// U.S. Department of Energy under contract number DE-AC03-76SF00098.
 public struct DDouble {
     
-    /// Storage for double-precision data type
+    // MARK: - Storage for the data type
     public var x : SIMD2<Double>
     
     private static let IEEE_ADD = false     // set to true for slower IEEE-compliant adds
     private static let SLOPPY_DIV = true    // set to false for an accurate division
     private static let QD_FMS = false       // set to true for Fused-Multiply-Subtract
     
-    /// Initializers
-    public init()                           { x = SIMD2.zero }
-    public init(_ d: Double)                { x = SIMD2(d, 0.0) }
-    public init(_ h: Int)                   { x = SIMD2(Double(h), 0.0) }
-    public init(_ hi: Double, _ lo: Double) { x = SIMD2(hi, lo) }
-    public init(_ s: SIMD2<Double>)         { x = s }
+    // MARK: - Initializers
+    public init()                          		{ x = SIMD2.zero }
+    public init(_ d: Double)                	{ x = SIMD2(d, 0.0) }
+    public init(_ h: Int)                   	{ x = SIMD2(Double(h), 0.0) }
+    public init(_ hi: Double, _ lo: Double) 	{ x = SIMD2(hi, lo) }
+    public init(_ s: SIMD2<Double>)         	{ x = s }
     
     public init (_ s: String) {
         if let q : DDouble = Common.toFloat(s) {
@@ -35,23 +38,23 @@ public struct DDouble {
         }
     }
     
-    /// Access functions
+    // MARK: - Access functions
     public var hi: Double { x.x }
     public var lo: Double { x.y }
     
-    /*********** Micellaneous ************/
-    public var isZero:Bool      { x[0].isZero }
-    public var isOne:Bool       { x[0] == 1.0 && x[1].isZero }
-    public var isPositive:Bool  { x[0] > 0.0 }
-    public var isNegative:Bool  { x[0] < 0.0 }
-    public var isNaN:Bool       { x[0].isNaN || x[1].isNaN }
-    public var isFinite:Bool    { x[0].isFinite }
-    public var isInfinite :Bool { x[0].isInfinite }
+    // MARK: - Micellaneous
+    public var isZero:Bool   		{ x[0].isZero }
+	public var isOne:Bool     		{ x[0] == 1.0 && x[1].isZero }
+    public var isPositive:Bool		{ x[0] > 0.0 }
+    public var isNegative:Bool		{ x[0] < 0.0 }
+    public var isNaN:Bool     		{ x[0].isNaN || x[1].isNaN }
+    public var isFinite:Bool 	  	{ x[0].isFinite }
+    public var isInfinite :Bool 	{ x[0].isInfinite }
     
-    /* Absolute value */
+    /** Absolute value */
     public var abs: DDouble { x[0] < 0.0 ? DDouble(-x) : DDouble(x) }
     
-    /* Round to Nearest integer */
+    /** Round to Nearest integer */
     public static func nint(_ a:DDouble) -> DDouble {
         var hi = DDouble.nint(a.x[0])
         var lo = 0.0
@@ -102,7 +105,7 @@ public struct DDouble {
     public var double: Double { x[0] }
     public var int: Int { Int(x[0]) }
     
-    /// Internal constants
+    // MARK: - Internal constants
     static private let _2pi = DDouble(6.283185307179586232e+00, 2.449293598294706414e-16);
     static private let _pi = DDouble(3.141592653589793116e+00, 1.224646799147353207e-16);
     static private let _pi2 = DDouble(1.570796326794896558e+00, 6.123233995736766036e-17);
@@ -125,12 +128,12 @@ public struct DDouble {
     static public let e = _e
     static public let max = _max
     
-    /// Base 10 digits
+    /// Number of base 10 digits
     static public var digits:Int { _ndigits }
     
-    /// Functions
+    // MARK: - Functions
     
-    /* Computes fl(a*a) and err(a*a).  Faster than the above method. */
+    /** Computes fl(a*a) and err(a*a).  Faster than the above method. */
     static func two_sqr(_ a:Double, _ err:inout Double) -> Double {
         let p = a * a
         if QD_FMS {
@@ -142,20 +145,20 @@ public struct DDouble {
         return p
     }
     
-    /* Computes the nearest integer to d. */
+    /** Computes the nearest integer to d. */
     static func nint(_ d:Double) -> Double {
         if (d == Foundation.floor(d)) { return d }
         return Foundation.floor(d + 0.5)
     }
 
-    /* Computes the truncated integer. */
+    /** Computes the truncated integer. */
     static func aint(_ d:Double) -> Double { (d >= 0.0) ? Foundation.floor(d) : Foundation.ceil(d) }
 
     /* These are provided to give consistent
        interface for double with double-double and quad-double. */
  //   static func sincosh(_ t:Double) -> (sinht: Double, cosht: Double) { (sinht: sinh(t), cosht: cosh(t)) }
 
-    /*********** Squaring **********/
+    /// Squares *a*.
     public static func sqr(_ a:DDouble) -> DDouble {
         var p2 = 0.0
         let p1 = two_sqr(a.x[0], &p2)
@@ -172,7 +175,7 @@ public struct DDouble {
         return DDouble(p1, p2)
     }
     
-    /* double-double * (2.0 ^ exp) */
+    /** double-double * (2.0 ^ exp) */
     public static func ldexp(_ a:DDouble, _ exp:Int) -> DDouble { DDouble(Foundation.scalbn(a.x[0], exp), Foundation.scalbn(a.x[1], exp)) }
     static func sqr(_ t:Double) -> Double { t * t }
 
@@ -219,10 +222,10 @@ public struct DDouble {
         }
     }
 
-    /* double + double-double */
+    /** double + double-double */
     public static func + (_ a:Double, _ b:DDouble) -> DDouble { b + a }
     
-    /* double-double += double */
+    /** double-double += double */
     public static func += (_ x: inout DDouble, _ a:Double) {
         var s2 = 0.0
         let s1 = two_sum(x.x[0], a, &s2)
@@ -230,7 +233,7 @@ public struct DDouble {
         x.x[0] = quick_two_sum(s1, s2, &x.x[1])
     }
     
-    /* double-double += double-double */
+    /** double-double += double-double */
     public static func += (_ x: inout DDouble, _ a:DDouble) {
         if !IEEE_ADD {
             var e = 0.0
@@ -249,10 +252,10 @@ public struct DDouble {
         }
     }
     
-    /*********** Unary Minus ***********/
+    /** Unary Minus */
     public static prefix func - (_ x:DDouble) -> DDouble { DDouble(-x.x[0], -x.x[1]) }
     
-    /* double-double - double-double */
+    /** double-double - double-double */
     public static func - (_ a:DDouble, _ b:DDouble) -> DDouble {
         if !IEEE_ADD {
             var e = 0.0
@@ -274,7 +277,7 @@ public struct DDouble {
         }
     }
     
-    /* double-double -= double-double */
+    /** double-double -= double-double */
     public static func -= (_ x: inout DDouble, _ a: DDouble) {
         if !IEEE_ADD {
             var e = 0.0
@@ -303,7 +306,7 @@ public struct DDouble {
         return DDouble(p1, p2)
     }
 
-    /* double-double * double-double */
+    /** double-double * double-double */
     public static func * (_ a:DDouble, _ b:DDouble) -> DDouble {
         var p2 = 0.0
         var p1 = two_prod(a.x[0], b.x[0], &p2);
@@ -312,11 +315,11 @@ public struct DDouble {
         return DDouble(p1, p2)
     }
 
-    /* double * double-double */
+    /** double * double-double */
     public static func * (_ a:Double, _ b:DDouble) -> DDouble { b * a }
     
-    /*********** Self-Multiplications ************/
-    /* double-double *= double */
+    /// MARK: - Self-Multiplications
+    /** double-double *= double */
     public static func *= (_ x: inout DDouble, _ a:Double) {
         var p2 = 0.0
         let p1 = two_prod(x.x[0], a, &p2)
@@ -332,12 +335,12 @@ public struct DDouble {
         x.x[0] = quick_two_sum(p1, p2, &x.x[1]);
     }
     
-    /* double-double * double,  where double is a power of 2. */
+    /** double-double * double,  where double is a power of 2. */
     public static func mul_pwr2(_ a:DDouble, _ b:Double) -> DDouble {
         DDouble(a.x[0] * b, a.x[1] * b)
     }
     
-    /* double-double / double */
+    /** double-double / double */
     public static func / (_ a:DDouble, _ b:Double) -> DDouble {
         let q1 = a.x[0] / b   /* approximate quotient. */
         
@@ -398,7 +401,7 @@ public struct DDouble {
     public static func /= (_ x: inout DDouble, _ a:DDouble) { x = x / a }
     public static func /= (_ x: inout DDouble, _ a:Double)  { x = x / a }
     
-    /********** Exponentiation **********/
+    /** Exponentiation */
     static public func pow (_ a: DDouble, _ b: DDouble) -> DDouble { exp(b * log(a)) }
     
     /// Power function a ** n
@@ -413,17 +416,17 @@ precedencegroup ExponentPrecedence {
 }
 
 extension DDouble : Comparable {
-    /*********** Equality Comparisons ************/
+    /// MARK: - Equality Comparisons
     public static func == (_ a:DDouble,_ b:Double) -> Bool  { a.x[0] == b && a.x[1] == 0.0 }
     public static func == (_ a:DDouble,_ b:DDouble) -> Bool { a.x[0] == b.x[0] && a.x[1] == b.x[1] }
     public static func == (_ a:Double, _ b:DDouble) -> Bool { a == b.x[0] && b.x[1] == 0.0 }
     
-    /*********** Less-Than Comparisons ************/
+    // MARK: - Less-Than Comparisons
     public static func < (_ a:DDouble,_ b:Double) -> Bool   { a.x[0] < b || (a.x[0] == b && a.x[1] < 0.0) }
     public static func < (_ a:DDouble,_ b:DDouble) -> Bool  { a.x[0] < b.x[0] || (a.x[0] == b.x[0] && a.x[1] < b.x[1]) }
     public static func < (_ a:Double, _ b:DDouble) -> Bool  { a < b.x[0] || (a == b.x[0] && b.x[1] > 0.0) }
     
-    /*********** Greater-Than Comparisons ************/
+    // MARK: - Greater-Than Comparisons
     public static func > (_ a: DDouble,_ b:Double) -> Bool  { a.x[0] > b || (a.x[0] == b && a.x[1] > 0.0) }
     public static func > (_ a: DDouble,_ b:DDouble) -> Bool { a.x[0] > b.x[0] || (a.x[0] == b.x[0] && a.x[1] > b.x[1]) }
     public static func > ( _ a:Double, _ b:DDouble) -> Bool { a > b.x[0] || (a == b.x[0] && b.x[1] < 0.0) }
@@ -585,19 +588,18 @@ extension DDouble : FloatingPoint {
         self.init(a.x)
     }
     
-    /// Computes the square root of the double-double number dd.
-    ///   NOTE: dd must be a non-negative number.
+    /// Computes the square root of the double-double number *a*.
+    ///   NOTE: *a* must be a non-negative number.
+    ///
+    /// Strategy:  Use Karp's trick:  if x is an approximation
+    /// to sqrt(a), then
+    ///
+    /// sqrt(a) = a*x + [a - (a*x)^2] * x / 2   (approx)
+    ///
+    /// The approximation is accurate to twice the accuracy of x.
+    /// Also, the multiplication (a*x) and [-]*x can be done with
+    /// only half the precision.
     public static func sqrt(_ a:DDouble) -> DDouble {
-        /* Strategy:  Use Karp's trick:  if x is an approximation
-         to sqrt(a), then
-         
-         sqrt(a) = a*x + [a - (a*x)^2] * x / 2   (approx)
-         
-         The approximation is accurate to twice the accuracy of x.
-         Also, the multiplication (a*x) and [-]*x can be done with
-         only half the precision.
-         */
-        
         if a.isZero { return 0.0 }
         
         if a.isNegative {
@@ -654,15 +656,17 @@ extension DDouble : FloatingPoint {
     }
     
     /// Exponential.  Computes exp(x) in double-double precision.
+    ///
+    /// Strategy:  We first reduce the size of x by noting that
+    
+    /// exp(kr + m * log(2)) = 2^m * exp(r)^k
+    ///
+    /// where m and k are integers.  By choosing m appropriately
+    /// we can make |kr| <= log(2) / 2 = 0.347.  Then exp(r) is
+    /// evaluated using the familiar Taylor series.  Reducing the
+    /// argument substantially speeds up the convergence.
     public static func exp(_ a: DDouble) -> DDouble {
-        /* Strategy:  We first reduce the size of x by noting that
-         
-         exp(kr + m * log(2)) = 2^m * exp(r)^k
-         
-         where m and k are integers.  By choosing m appropriately
-         we can make |kr| <= log(2) / 2 = 0.347.  Then exp(r) is
-         evaluated using the familiar Taylor series.  Reducing the
-         argument substantially speeds up the convergence.       */
+
         let k = 512.0
         let inv_k = 1.0 / k
         
@@ -704,22 +708,24 @@ extension DDouble : FloatingPoint {
     
     /// Logarithm.  Computes log(x) in double-double precision.
     ///   This is a natural logarithm (i.e., base e).
+    ///
+    ///          /* Strategy.  The Taylor series for log converges much more
+    /// slowly than that of exp, due to the lack of the factorial
+    /// term in the denominator.  Hence this routine instead tries
+    /// to determine the root of the function
+    ///
+    ///    f(x) = exp(x) - a
+    ///
+    /// using Newton iteration.  The iteration is given by
+    ///
+    /// x' = x - f(x)/f'(x)
+    /// = x - (1 - a * exp(-x))
+    /// = x + a * exp(-x) - 1.
+    ///
+    /// Only one iteration is needed, since Newton's iteration
+    /// approximately doubles the number of digits per iteration.
     public static func log(_ a: DDouble) -> DDouble {
-        /* Strategy.  The Taylor series for log converges much more
-         slowly than that of exp, due to the lack of the factorial
-         term in the denominator.  Hence this routine instead tries
-         to determine the root of the function
-         
-         f(x) = exp(x) - a
-         
-         using Newton iteration.  The iteration is given by
-         
-         x' = x - f(x)/f'(x)
-         = x - (1 - a * exp(-x))
-         = x + a * exp(-x) - 1.
-         
-         Only one iteration is needed, since Newton's iteration
-         approximately doubles the number of digits per iteration. */
+ 
         
         if a.isOne { return 0.0 }
         
@@ -781,17 +787,18 @@ extension DDouble : FloatingPoint {
         return (sina, sqrt(1.0 - sqr(sina)))
     }
     
+    /// Strategy.  To compute sin(x), we choose integers a, b so that
+    ///
+    ///  x = s + a * (pi/2) + b * (pi/16)
+    ///
+    ///  and |s| <= pi/32.  Using the fact that
+    ///
+    ///  sin(pi/16) = 0.5 * sqrt(2 - sqrt(2 + sqrt(2)))
+    ///
+    ///  we can compute sin(x) from sin(s), cos(s).  This greatly
+    ///  increases the convergence of the sine Taylor series.
     static public func sin(_ a: DDouble) -> DDouble {
-        /* Strategy.  To compute sin(x), we choose integers a, b so that
-         
-         x = s + a * (pi/2) + b * (pi/16)
-         
-         and |s| <= pi/32.  Using the fact that
-         
-         sin(pi/16) = 0.5 * sqrt(2 - sqrt(2 + sqrt(2)))
-         
-         we can compute sin(x) from sin(s), cos(s).  This greatly
-         increases the convergence of the sine Taylor series. */
+
         if a.isZero { return 0.0 }
         
         // approximately reduce modulo 2*pi
@@ -977,23 +984,23 @@ extension DDouble : FloatingPoint {
 
     static public func atan(_ a: DDouble) -> DDouble { atan2(a, DDouble(1.0)) }
 
+    /** Strategy: Instead of using Taylor series to compute
+     arctan, we instead use Newton's iteration to solve
+     the equation
+     
+     sin(z) = y/r    or    cos(z) = x/r
+     
+     where r = sqrt(x^2 + y^2).
+     The iteration is given by
+     
+     z' = z + (y - sin(z)) / cos(z)          (for equation 1)
+     z' = z - (x - cos(z)) / sin(z)          (for equation 2)
+     
+     Here, x and y are normalized so that x^2 + y^2 = 1.
+     If |x| > |y|, then first iteration is used since the
+     denominator is larger.  Otherwise, the second is used.
+     */
     static public func atan2(_ y: DDouble, _ x: DDouble) -> DDouble {
-        /* Strategy: Instead of using Taylor series to compute
-         arctan, we instead use Newton's iteration to solve
-         the equation
-         
-         sin(z) = y/r    or    cos(z) = x/r
-         
-         where r = sqrt(x^2 + y^2).
-         The iteration is given by
-         
-         z' = z + (y - sin(z)) / cos(z)          (for equation 1)
-         z' = z - (x - cos(z)) / sin(z)          (for equation 2)
-         
-         Here, x and y are normalized so that x^2 + y^2 = 1.
-         If |x| > |y|, then first iteration is used since the
-         denominator is larger.  Otherwise, the second is used.
-         */
         if x.isZero {
             if y.isZero {
                 /* Both x and y are zero. */
@@ -1180,7 +1187,7 @@ extension DDouble : FloatingPoint {
       return r
     }
 
-    /* polyroot(c, n, x0)
+    /** polyroot(c, n, x0)
        Given an n-th degree polynomial, finds a root close to
        the given guess x0.  Note that this uses simple Newton
        iteration scheme, and does not work for multiple roots.  */

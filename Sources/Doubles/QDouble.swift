@@ -1,17 +1,19 @@
 import Foundation
 import simd                // vector-based math library
 
-///  Translated to Swift from an original work called qd-2.3.15
-///  by Yozo Hida, Xiaoye S. Li, and David H. Bailey
-///  Bug fixes incorporated from qd-2.3.23 - MG - 24 Mar 2019.
-///
-///  Created by Mike Griebling on 30 Jun 2015.
-///  Copyright (c) 2015-2022 Computer Inspirations. All rights reserved.
-///
-/// (Original) work was supported by the Director, Office of Science, Division
-/// of Mathematical, Information, and Computational Sciences of the
-/// U.S. Department of Energy under contract number DE-AC03-76SF00098.
+//  Translated to Swift from an original work called qd-2.3.15
+//  by Yozo Hida, Xiaoye S. Li, and David H. Bailey
+//  Bug fixes incorporated from qd-2.3.23 - MG - 24 Mar 2019.
+//
+//  Created by Mike Griebling on 30 Jun 2015.
+//  Copyright (c) 2015-2022 Computer Inspirations. All rights reserved.
+//
+// (Original) work was supported by the Director, Office of Science, Division
+// of Mathematical, Information, and Computational Sciences of the
+// U.S. Department of Energy under contract number DE-AC03-76SF00098.
 
+/// Quad-precision Double floating point implementation
+/// 
 public struct QDouble {
 
     ///
@@ -47,9 +49,7 @@ public struct QDouble {
     //      exp:   2.707000 us    0.3694 mop/s
     //      cos:   2.527750 us    0.3956 mop/s
     
-    ///
-    /// Internal/public constants
-    ///
+	// MARK: - Internal/public constants
     public static let twopi =   QDouble(6.283185307179586232e+00, 2.449293598294706414e-16, -5.989539619436679332e-33, 2.224908441726730563e-49)
     public static let pi =      QDouble(3.141592653589793116e+00, 1.224646799147353207e-16, -2.994769809718339666e-33, 1.112454220863365282e-49)
     public static let pi2 =     QDouble(1.570796326794896558e+00, 6.123233995736766036e-17, -1.497384904859169833e-33, 5.562271104316826408e-50)
@@ -72,14 +72,12 @@ public struct QDouble {
     private static let _min_normalized = 1.6259745436952323e-260    // = 2^(-1022 + 3*53)
     private static let _safe_max =       QDouble(1.7976931080746007281e+308,  9.97920154767359795037e+291, 5.53956966280111259858e+275, 3.07507889307840487279e+259)
     
-    //
-    // number storage
-    //
-    public var x : SIMD4<Double>        // gives a bit better performance than [Double]
+    ///
+    /// number storage - SIMD4 gives a bit better performance than [Double]
+    ///
+    public var x : SIMD4<Double>
 
-    //
-    // Initialization routines
-    //
+	// MARK: - Initialization routines
     @inlinable public init () { x = SIMD4.zero }
     
     public init<T>(_ source: T) where T : BinaryInteger {
@@ -104,7 +102,7 @@ public struct QDouble {
         if let q : QDouble = Common.toFloat(s) {
             x = q.x
         } else {
-            Common.error("\(#function): STRING CONVERT ERROR.")
+            Common.error("\(#function): String Convert Error.")
             x = QDouble.nan.x
         }
     }
@@ -123,15 +121,13 @@ public struct QDouble {
         }
     }
 
-    //
-    // Utility routines
-    //
+	// MARK: - Utility routines
     
     @inlinable public var isNaN: Bool      { x[0].isNaN || x[1].isNaN  || x[2].isNaN  || x[3].isNaN  }
     @inlinable public var isFinite: Bool   { x[0].isFinite }
     @inlinable public var isInfinite: Bool { x[0].isInfinite }
     
-    /********** Renormalization **********/
+	// MARK: - Renormalization
     private static func quick_renorm(_ c0: inout Double, _ c1: inout Double, _ c2: inout Double, _ c3: inout Double, _ c4: inout Double) {
         var t0=0.0, t1=0.0, t2=0.0, t3=0.0
         var s = quick_two_sum(c3, c4, &t3)
@@ -237,7 +233,7 @@ public struct QDouble {
         x.x = a; x.y = b; x.z = c
     }
     
-    /********** Additions ************/
+    /// MARK: - Additions
 
     @inlinable static func three_sum(_ a: inout Double, _ b: inout Double, _ c: inout Double) {
         var t2 = 0.0, t3 = 0.0
@@ -253,7 +249,7 @@ public struct QDouble {
         b = t2 + t3;
     }
 
-    /* quad-Double + Double */
+    /** quad-Double + Double */
     @inlinable static public func + (_ a: QDouble, _ b: Double) -> QDouble {
         var c0,c1,c2,c3: Double; var e = 0.0
         
@@ -287,10 +283,10 @@ public struct QDouble {
     @inlinable static public func + (_ a: Double, _ b: QDouble) -> QDouble { b + a }
     @inlinable static public func + (_ a: DDouble, _ b: QDouble) -> QDouble { b + a }
     
-    /* s = quick_three_accum(a, b, c) adds c to the dd-pair (a, b).
-     * If the result does not fit in two Doubles, then the sum is
-     * output into s and (a,b) contains the remainder.  Otherwise
-     * s is zero and (a,b) contains the sum. */
+    /** s = quick_three_accum(a, b, c) adds c to the dd-pair (a, b).
+	  If the result does not fit in two Doubles, then the sum is
+      output into s and (a,b) contains the remainder.  Otherwise
+      s is zero and (a,b) contains the sum. */
     @inlinable static func quick_three_accum(_ a: inout Double, _ b: inout Double, _ c: Double) -> Double {
         var s = two_sum(b, c, &b);
         s = two_sum(a, s, &a);
@@ -306,7 +302,7 @@ public struct QDouble {
         return 0
     }
     
-    /********** Accessors **********/
+	// MARK: - Accessors
     @inlinable subscript (n: Int) -> Double {
         get { x[n] }
         set { x[n] = newValue }
@@ -401,10 +397,10 @@ public struct QDouble {
         return QDouble(s)
     }
     
-    /* quad-Double + quad-Double */
+    /** quad-Double + quad-Double */
     @inlinable public static func + (_ a: QDouble, _ b: QDouble) -> QDouble { SLOPPY_ADD ? sloppy_add(a, b) : ieee_add(a, b) }
     
-    /********** Multiplications **********/
+	// MARK: - Multiplications
     
     @inlinable static func mul_pwr2(_ a: QDouble, _ b: Double) -> QDouble { QDouble(a[0] * b, a[1] * b, a[2] * b, a[3] * b) }
     
@@ -428,8 +424,8 @@ public struct QDouble {
         return QDouble(s0, s1, s2, s3)
     }
     
-    /* quad-Double * quad-Double */
-     /* a0 * b0                    0
+    /** quad-Double * quad-Double
+        a0 * b0                    0
              a0 * b1               1
              a1 * b0               2
                   a0 * b2          3
@@ -598,30 +594,30 @@ public struct QDouble {
         return QDouble(p0, p1, p2, p3)
     }
     
-    /* ********* Equality Comparison ********* */
+	// MARK: - Equality Comparison
     @inlinable static public func == (a: QDouble, b: Double) -> Bool  { a.x == SIMD4(b, 0, 0, 0) }
     @inlinable static public func == (a: QDouble, b: QDouble) -> Bool { a.x == b.x }
     
-    /* ********* Less-Than Comparison ********** */
+	// MARK: - Less-Than Comparison
     @inlinable static public func < (a: QDouble, b: Double) -> Bool  { a[0] < b || (a[0] == b && a[1] < 0.0) }
     @inlinable static public func < (a: Double,  b: QDouble) -> Bool { b > a }
     @inlinable static public func < (a: QDouble, b: DDouble) -> Bool { a[0] < b.hi || (a[0] == b.hi && (a[1] < b.lo || (a[1] == b.lo && a[2] < 0.0))) }
     @inlinable static public func < (a: QDouble, b: QDouble) -> Bool { a[0] < b[0] || (a[0] == b[0] && (a[1] < b[1] || (a[1] == b[1] && (a[2] < b[2] || (a[2] == b[2] && a[3] < b[3]))))) }
     
-    /* ********* Greater-Than Comparison ********** */
+	// MARK: - Greater-Than Comparison
     @inlinable static public func > (a: QDouble, b: Double) -> Bool  { a[0] > b || (a[0] == b && a[1] > 0.0) }
     @inlinable static public func > (a: Double,  b: QDouble) -> Bool { b < a }
     @inlinable static public func > (a: QDouble, b: DDouble) -> Bool { a[0] > b.hi || (a[0] == b.hi && (a[1] > b.lo || (a[1] == b.lo && a[2] > 0.0))) }
     @inlinable static public func > (a: QDouble, b: QDouble) -> Bool { a[0] > b[0] || (a[0] == b[0] && (a[1] > b[1] || (a[1] == b[1] && (a[2] > b[2] || (a[2] == b[2] && a[3] > b[3]))))) }
     
-    /* ********* Less-Than-Or-Equal-To Comparison ********* */
+	// MARK: - Less-Than-Or-Equal-To Comparison
     @inlinable static public func <= (a: QDouble, b: Double) -> Bool  { a[0] < b || (a[0] == b && a[1] <= 0.0) }
     @inlinable static public func <= (a: Double, b: QDouble) -> Bool  { b >= a }
     @inlinable static public func <= (a: QDouble, b: DDouble) -> Bool { a[0] < b.hi || (a[0] == b.hi && (a[1] < b.lo || (a[1] == b.lo && a[2] <= 0.0))) }
     @inlinable static public func <= (a: DDouble, b: QDouble) -> Bool { b >= a }
     @inlinable static public func <= (a: QDouble, b:QDouble) -> Bool  { a[0] < b[0] || (a[0] == b[0] && (a[1] < b[1] || (a[1] == b[1] && (a[2] < b[2] || (a[2] == b[2] && a[3] <= b[3]))))) }
     
-    /*  ********* Greater-Than-Or-Equal-To Comparison **********/
+	// MARK: - Greater-Than-Or-Equal-To Comparison
     @inlinable static public func >= (_ a: QDouble, b: Double) -> Bool  { a[0] > b || (a[0] == b && a[1] >= 0.0) }
     @inlinable static public func >= (_ a: QDouble, b: DDouble) -> Bool { a[0] > b.hi || (a[0] == b.hi && (a[1] > b.lo || (a[1] == b.lo && a[2] >= 0.0))) }
     @inlinable static public func >= (_ a: DDouble, b: QDouble) -> Bool { b <= a }
@@ -736,7 +732,7 @@ public struct QDouble {
         return QDouble(x0, x1, x2, x3)
     }
     
-    /* ********* Divisions ********* */
+	// MARK: - Divisions
     
     /** Strategy:  compute approximate quotient using high order
     doubles, and then correct it three times using the remainder.
@@ -766,7 +762,7 @@ public struct QDouble {
         return QDouble(q0, q1, q2, q3)
     }
     
-    /* quad-double / double-double */
+    /** quad-double / double-double */
     static func sloppy_div(_ a: QDouble, _ b: DDouble) -> QDouble  {
         let qd_b = QDouble(b)
         
@@ -1500,7 +1496,7 @@ public struct QDouble {
     }
     
     // MARK: - Object-based methods
-    //
+
     public func add (_ b: Double) -> QDouble  { self + b }
     public func add (_ b: QDouble) -> QDouble { self + b }
     public func sub (_ b: Double) -> QDouble  { self - b }
@@ -2093,9 +2089,7 @@ precedencegroup ExponentPrecedence {
     higherThan: MultiplicationPrecedence
 }
 
-//
-// Operators
-//
+// MARK: - Operators
 extension QDouble {
     
     // MARK: - Quad-based Operator Definitions
@@ -2124,11 +2118,10 @@ extension QDouble {
     @inlinable static public func /= (a: inout QDouble, b: Double)   { a = a / b }
     @inlinable static public func /= (a: inout QDouble, b: DDouble)  { a = a / b }
     
-    /********** Unary Minus **********/
+	// MARK: - Unary Minus
     @inlinable static public prefix func - (x: QDouble) -> QDouble { QDouble(-x[0], -x[1], -x[2], -x[3]) }
     
-    /********** Exponentiation **********/
-
+	// MARK: - Exponentiation
     @inlinable static public func ** (base: QDouble, power: Int) -> QDouble  { Common.pow(base, power) }
     @inlinable static public func ** (base: QDouble, power: QDouble) -> QDouble { QDouble.pow(base, power) }
 

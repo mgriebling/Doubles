@@ -1,0 +1,25 @@
+{
+  "configurations" : [
+    {
+      "id" : "3BFACB3A-3352-4F16-900D-F5323DAF6851",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "codeCoverage" : false
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "DoublesTests",
+        "name" : "DoublesTests"
+      }
+    }
+  ],
+  "version" : 1
+}
