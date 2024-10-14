@@ -13,6 +13,11 @@ Too bad these checks can't be turned off in performance-critical code.  I know s
 Translated to Swift from an original work called qd-2.3.15 by Yozo Hida, Xiaoye S. Li, and David H. Bailey
 Bug fixes incorporated from qd-2.3.22 - MG - 24 Mar 2019.
 
+Note: Source code was translated from an original work that is:
+Copyright (c) 2003-2009, The Regents of the University of California,
+through Lawrence Berkeley National Laboratory (subject to receipt of
+any required approvals from U.S. Dept. of Energy) All rights reserved. 
+
 # Swift Examples
 
 ```
